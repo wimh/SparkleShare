@@ -1,14 +1,20 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="3.5">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.50727</ProductVersion>
+    <ProductVersion>9.0.21022</ProductVersion>
     <ProjectGuid>{728483AA-E34B-4441-BF2C-C8BC2901E4E0}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AssemblyName>SparkleShare</AssemblyName>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace>SparkleShare</RootNamespace>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>2.0</OldToolsVersion>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -28,6 +34,8 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
+    <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
     <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
       <Package>gtk-sharp-2.0</Package>
     </Reference>
@@ -39,9 +47,15 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="Mono.Posix" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="SparkleBubble.cs" />
+    <Compile Include="SparkleController.cs" />
+    <Compile Include="SparkleDialog.cs" />
     <Compile Include="SparkleIntro.cs" />
     <Compile Include="SparkleShare.cs" />
     <Compile Include="SparkleSpinner.cs" />
@@ -56,6 +70,14 @@
     <Compile Include="SparkleInfobar.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\GitSharp\GitSharp.Core\GitSharp.Core.csproj">
+      <Project>{C46EDD61-C202-465A-93F1-ADE20A83BB59}</Project>
+      <Name>GitSharp.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GitSharp\GitSharp\GitSharp.csproj">
+      <Project>{7311850F-619A-4241-B09F-157792C75FBA}</Project>
+      <Name>GitSharp %28GitSharp\GitSharp%29</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NotifySharp\NotifySharp.csproj">
       <Project>{005CCA8E-DFBF-464A-B6DA-452C62D4589C}</Project>
       <Name>NotifySharp</Name>
@@ -79,5 +101,6 @@
         </MonoDevelop.Autotools.MakefileInfo>
       </Properties>
     </MonoDevelop>
+    <VisualStudio />
   </ProjectExtensions>
 </Project>
