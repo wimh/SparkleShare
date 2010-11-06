@@ -16,13 +16,30 @@
 
 using System;
 
-namespace SparkleShare {
+namespace SparkleLib {
 	
 	public static class SparklePlatform {
 
 		// Detect OSX, Windows, GNOME or KDE here
-		public static string Name = "GNOME";
+		//public static string Name = "GNOME";
 
+        /// <summary>
+        /// true if any variation of Windows
+        /// </summary>
+        public static bool IsWindows = DetectWindows();
+
+        private static bool DetectWindows()
+        {
+            PlatformID platform = Environment.OSVersion.Platform;
+            if (platform == PlatformID.Win32NT
+                || platform == PlatformID.Win32S
+                || platform == PlatformID.Win32Windows
+                || platform == PlatformID.WinCE)
+            {
+                return true;
+            }
+            return false;
+        }
 	}
 
 }
