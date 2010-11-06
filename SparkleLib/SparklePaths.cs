@@ -22,9 +22,9 @@ namespace SparkleLib {
 	
 	public static class SparklePaths
 	{
-        /// <summary>
-        /// Home directory under which the Sparkleshare local configuration is stored
-        /// </summary>
+		/// <summary>
+		/// Home directory under which the Sparkleshare local configuration is stored
+		/// </summary>
 		public static string HomePath = GetHomePath();
 
 		public static string SparklePath = Path.Combine (HomePath ,"SparkleShare");
@@ -42,18 +42,17 @@ namespace SparkleLib {
 		public static string SparkleIconPath = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "sparkleshare",
 			"icons");
 
-        private static string GetHomePath()
-        {
-            if (SparklePlatform.IsWindows)
-            {
-                return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            }
+		private static string GetHomePath()
+		{
+			if (SparklePlatform.IsWindows) {
+				return Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData);
+			}
 
-            // Asume Unix
-            UnixUserInfo UnixUserInfo = new UnixUserInfo(UnixEnvironment.UserName);
+			// Asume Unix
+			UnixUserInfo UnixUserInfo = new UnixUserInfo (UnixEnvironment.UserName);
 
-            return UnixUserInfo.HomeDirectory;
-        }
+			return UnixUserInfo.HomeDirectory;
+		}
 	}
 
 }
