@@ -171,24 +171,24 @@ namespace SparkleShare {
 		// start SparkleShare automatically at login
 		private void EnableSystemAutostart ()
 		{
-		
-			string autostart_path = SparkleHelpers.CombineMore (SparklePaths.HomePath, ".config", "autostart");
-			string desktopfile_path = SparkleHelpers.CombineMore (autostart_path, "sparkleshare.desktop");
+			if (!SparklePlatform.IsWindows) {
+				string autostart_path = SparkleHelpers.CombineMore (SparklePaths.HomePath, ".config", "autostart");
+				string desktopfile_path = SparkleHelpers.CombineMore (autostart_path, "sparkleshare.desktop");
 
-			if (!File.Exists (desktopfile_path)) {
+				if (!File.Exists (desktopfile_path)) {
 
-				if (!Directory.Exists (autostart_path))
-					Directory.CreateDirectory (autostart_path);
+					if (!Directory.Exists (autostart_path))
+						Directory.CreateDirectory (autostart_path);
 
 					TextWriter writer = new StreamWriter (desktopfile_path);
 					writer.WriteLine ("[Desktop Entry]\n" +
-					                  "Type=Application\n" +
-					                  "Name=SparkleShare\n" +
-					                  "Exec=sparkleshare start\n" +
-					                  "Icon=folder-sparkleshare\n" +
-					                  "Terminal=false\n" +
-					                  "X-GNOME-Autostart-enabled=true\n" +
-					                  "Categories=Network");
+									  "Type=Application\n" +
+									  "Name=SparkleShare\n" +
+									  "Exec=sparkleshare start\n" +
+									  "Icon=folder-sparkleshare\n" +
+									  "Terminal=false\n" +
+									  "X-GNOME-Autostart-enabled=true\n" +
+									  "Categories=Network");
 					writer.Close ();
 
 					// Give the launcher the right permissions so it can be launched by the user
@@ -197,7 +197,7 @@ namespace SparkleShare {
 					SparkleHelpers.DebugInfo ("Config", "Created '" + desktopfile_path + "'");
 
 				}
-
+			}
 		}
 		
 
@@ -205,25 +205,25 @@ namespace SparkleShare {
 		// from the Internet category if needed
 		private void InstallLauncher ()
 		{
-		
-			string apps_path = SparkleHelpers.CombineMore (SparklePaths.HomePath, ".local", "share", "applications");
-			string desktopfile_path = SparkleHelpers.CombineMore (apps_path, "sparkleshare.desktop");
+			if (!SparklePlatform.IsWindows) {
+				string apps_path = SparkleHelpers.CombineMore (SparklePaths.HomePath, ".local", "share", "applications");
+				string desktopfile_path = SparkleHelpers.CombineMore (apps_path, "sparkleshare.desktop");
 
-			if (!File.Exists (desktopfile_path)) {
+				if (!File.Exists (desktopfile_path)) {
 
-				if (!Directory.Exists (apps_path))
+					if (!Directory.Exists (apps_path))
 
-					Directory.CreateDirectory (apps_path);
+						Directory.CreateDirectory (apps_path);
 
 					TextWriter writer = new StreamWriter (desktopfile_path);
 					writer.WriteLine ("[Desktop Entry]\n" +
-					                  "Type=Application\n" +
-					                  "Name=SparkleShare\n" +
-					                  "Comment=Share documents\n" +
-					                  "Exec=sparkleshare start\n" +
-					                  "Icon=folder-sparkleshare\n" +
-					                  "Terminal=false\n" +
-					                  "Categories=Network;");
+									  "Type=Application\n" +
+									  "Name=SparkleShare\n" +
+									  "Comment=Share documents\n" +
+									  "Exec=sparkleshare start\n" +
+									  "Icon=folder-sparkleshare\n" +
+									  "Terminal=false\n" +
+									  "Categories=Network;");
 					writer.Close ();
 
 					// Give the launcher the right permissions so it can be launched by the user
@@ -232,7 +232,7 @@ namespace SparkleShare {
 					SparkleHelpers.DebugInfo ("Config", "Created '" + desktopfile_path + "'");
 
 				}
-
+			}
 		}
 
 
@@ -584,22 +584,23 @@ namespace SparkleShare {
 		// Sets the unix process name to 'sparkleshare' instead of 'mono'
 		private void SetProcessName (string name)
 		{
+			if (!SparklePlatform.IsWindows) {
+				try {
 
-			try {
+					if (prctl (15, Encoding.ASCII.GetBytes (name + "\0"), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero) != 0) {
 
-				if (prctl (15, Encoding.ASCII.GetBytes (name + "\0"), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero) != 0) {
+						throw new ApplicationException ("Error setting process name: " +
+							Mono.Unix.Native.Stdlib.GetLastError ());
 
-					throw new ApplicationException ("Error setting process name: " +
-						Mono.Unix.Native.Stdlib.GetLastError ());
+					}
 
 				}
+				catch (EntryPointNotFoundException) {
 
-			} catch (EntryPointNotFoundException) {
+					Console.WriteLine ("SetProcessName: Entry point not found");
 
-				Console.WriteLine ("SetProcessName: Entry point not found");
-
+				}
 			}
-
 		}
 
 

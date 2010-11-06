@@ -47,18 +47,19 @@ namespace SparkleShare {
 			// Use translations
 			Catalog.Init (Defines.GETTEXT_PACKAGE, Defines.LOCALE_DIR);
 
-			UnixUserInfo user_info = new UnixUserInfo (UnixEnvironment.UserName);
+			if (!SparklePlatform.IsWindows) {
+				UnixUserInfo user_info = new UnixUserInfo (UnixEnvironment.UserName);
 
-			// Don't allow running as root
-			if (user_info.UserId == 0) {
+				// Don't allow running as root
+				if (user_info.UserId == 0) {
 
-				Console.WriteLine (_("Sorry, you can't run SparkleShare with these permissions."));
-				Console.WriteLine (_("Things would go utterly wrong.")); 
+					Console.WriteLine (_("Sorry, you can't run SparkleShare with these permissions."));
+					Console.WriteLine (_("Things would go utterly wrong."));
 
-				Environment.Exit (0);
+					Environment.Exit (0);
 
+				}
 			}
-
 
 			bool hide_ui   = false;
 			bool show_help = false;
@@ -85,10 +86,10 @@ namespace SparkleShare {
 				ShowHelp (p);
 
 			Controller = new SparkleController ();
-if (!hide_ui){
-			UI = new SparkleUI ();
-UI.Run ();
-}
+			if (!hide_ui) {
+				UI = new SparkleUI();
+				UI.Run();
+			}
 		}
 
 
