@@ -278,25 +278,27 @@ namespace SparkleShare {
 				Directory.CreateDirectory (SparklePaths.SparklePath);
 				SparkleHelpers.DebugInfo ("Config", "Created '" + SparklePaths.SparklePath + "'");
 
-				string icon_file_path = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "icons", "hicolor",
-					"48x48", "apps", "folder-sparkleshare.png");
+				if (!SparklePlatform.IsWindows) {
+					string icon_file_path = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "icons", "hicolor",
+						"48x48", "apps", "folder-sparkleshare.png");
 
-				string gvfs_command_path = SparkleHelpers.CombineMore (Path.VolumeSeparatorChar.ToString (),
-					"usr", "bin", "gvfs-set-attribute");
+					string gvfs_command_path = SparkleHelpers.CombineMore (Path.VolumeSeparatorChar.ToString (),
+						"usr", "bin", "gvfs-set-attribute");
 
-				// Add a special icon to the SparkleShare folder
-				if (File.Exists (gvfs_command_path)) {
+					// Add a special icon to the SparkleShare folder
+					if (File.Exists (gvfs_command_path)) {
 
-					Process process = new Process ();
+						Process process = new Process ();
 
-					process.StartInfo.RedirectStandardOutput = true;
-					process.StartInfo.UseShellExecute = false;
+						process.StartInfo.RedirectStandardOutput = true;
+						process.StartInfo.UseShellExecute = false;
 
-					process.StartInfo.FileName  = "gvfs-set-attribute";
-					process.StartInfo.Arguments = SparklePaths.SparklePath + " metadata::custom-icon " +
-							                      "file://" + icon_file_path;
-					process.Start ();
+						process.StartInfo.FileName = "gvfs-set-attribute";
+						process.StartInfo.Arguments = SparklePaths.SparklePath + " metadata::custom-icon " +
+													  "file://" + icon_file_path;
+						process.Start ();
 
+					}
 				}
 
 				return true;
