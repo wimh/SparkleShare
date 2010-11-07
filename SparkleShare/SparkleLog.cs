@@ -20,7 +20,9 @@ using SparkleLib;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text.RegularExpressions;
+using WebKit;
 
 namespace SparkleShare {
 
@@ -30,6 +32,7 @@ namespace SparkleShare {
 		private VBox LayoutVertical;
 		private ScrolledWindow ScrolledWindow;
 		private MenuBar MenuBar;
+		private WebView WebView;
 
 		// Short alias for the translations
 		public static string _ (string s)
@@ -184,7 +187,7 @@ namespace SparkleShare {
 			List <SparkleCommit> commits = new List <SparkleCommit> ();
 
 			foreach (SparkleRepo repo in SparkleShare.Controller.Repositories) {
-
+// Controller.GetCommits (LocalPath);
 				// Get commits from the repository
 				if (repo.LocalPath.Equals (LocalPath)) {
 
@@ -479,13 +482,26 @@ namespace SparkleShare {
 
 			}
 
+
+			StreamReader reader = new StreamReader ("/home/hbons/github/SparkleShare/data/html/event-log.html");
+
+			string html = reader.ReadToEnd ();
+
+
+			reader.Close ();
+
+
+
+			WebView        = new WebView ();
 			ScrolledWindow = new ScrolledWindow ();
 
 				EventBox wrapper = new EventBox ();
 				wrapper.ModifyBg (StateType.Normal, background_color);
 				wrapper.Add (layout_vertical);
+				WebView.LoadHtmlString (html, "");
+				WebView.HoveringOverLink += delegate {};
 
-			ScrolledWindow.AddWithViewport (wrapper);
+			ScrolledWindow.AddWithViewport (WebView);
 			(ScrolledWindow.Child as Viewport).ShadowType = ShadowType.None;
 
 			return ScrolledWindow;
