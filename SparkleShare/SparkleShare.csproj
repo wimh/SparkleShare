@@ -51,6 +51,7 @@
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.XML" />
+    <Reference Include="webkit-sharp" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="SparkleBubble.cs" />
