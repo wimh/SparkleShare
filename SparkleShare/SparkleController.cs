@@ -68,7 +68,10 @@ namespace SparkleShare {
 
 		public SparkleController ()
 		{
+		}
 
+		public virtual void Init() 
+		{
 			InstallLauncher ();
 			EnableSystemAutostart ();
 
@@ -513,7 +516,7 @@ namespace SparkleShare {
 				string global_config_file = reader.ReadToEnd ();
 				reader.Close ();
 				
-				Regex regex = new Regex (@"name.+= (.+)");
+				Regex regex = new Regex (@"name[\s]*=[\s]*(.+)");
 				Match match = regex.Match (global_config_file);
 	
 				if (match.Success)
@@ -546,8 +549,8 @@ namespace SparkleShare {
 					StreamReader reader = new StreamReader (global_config_file_path);
 					string global_config_file = reader.ReadToEnd ();
 					reader.Close ();
-					
-					Regex regex = new Regex (@"email.+= (.+)");
+
+					Regex regex = new Regex(@"email[\s]*=[\s]*([\S]+)");
 					Match match = regex.Match (global_config_file);
 	
 					if (match.Success)
@@ -638,8 +641,6 @@ namespace SparkleShare {
 				// -f is the file name to store the private key in
 				process.StartInfo.Arguments = "-t rsa -P \"\" -f " + key_file_name;
 
-				process.Start ();
-
 				process.Exited += delegate {
 
 					SparkleHelpers.DebugInfo ("Config", "Created key '" + key_file_name + "'");
@@ -647,6 +648,7 @@ namespace SparkleShare {
 
 				};
 
+				process.Start();
 			}
 
 		}

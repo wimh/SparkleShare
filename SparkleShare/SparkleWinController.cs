@@ -31,7 +31,16 @@ namespace SparkleShare {
 
 		public SparkleWinController () : base ()
 		{
+		}
 
+		public override void Init()
+		{
+			// Add msysgit to path, as we cannot asume it is added to the path
+			// Asume it is installed in @"C:\msysgit\msysgit\bin" for now
+			string newPath = System.Environment.ExpandEnvironmentVariables("%PATH%;") + @"C:\msysgit\msysgit\bin";
+			System.Environment.SetEnvironmentVariable("PATH", newPath);
+
+			base.Init();
 		}
 
 

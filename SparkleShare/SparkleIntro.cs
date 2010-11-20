@@ -79,14 +79,22 @@ namespace SparkleShare {
 					RowSpacing = 6
 				};
 
-					UnixUserInfo unix_user_info = new UnixUserInfo (UnixEnvironment.UserName);			
+					String RealName;
+					if (SparkleLib.SparklePlatform.IsWindows)
+					{
+						RealName = System.Environment.GetEnvironmentVariable("USERNAME");
+					}
+					else
+					{
+						RealName = new UnixUserInfo(UnixEnvironment.UserName).RealName;
+					}
 
 					Label name_label = new Label ("<b>" + _("Full Name:") + "</b>") {
 						UseMarkup = true,
 						Xalign    = 0
 					};
 
-					NameEntry = new Entry (unix_user_info.RealName);
+					NameEntry = new Entry (RealName);
 					NameEntry.Changed += delegate {
 						CheckAccountForm ();
 					};

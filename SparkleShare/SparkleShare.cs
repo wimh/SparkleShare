@@ -94,7 +94,6 @@ namespace SparkleShare {
 				break;
 
 				case PlatformID.MacOSX:
-					throw new NotImplementedException();
 					//Controller = new SparkleMacController ();
 				break;
 				
@@ -104,6 +103,10 @@ namespace SparkleShare {
 
 			}
 
+			if (Controller != null)
+				Controller.Init();
+			else
+				throw new NotImplementedException("SparkleShare is not implemented on your platform");
 			
 			if (!hide_ui) {
 
