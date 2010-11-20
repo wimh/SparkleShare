@@ -16,7 +16,6 @@
 
 using Gtk;
 using Mono.Unix;
-using SparkleLib;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -60,6 +59,8 @@ namespace SparkleShare {
 			Reset ();
 
 			VBox layout_vertical = new VBox (false, 0);
+			
+				DeleteEvent += PreventClose;
 
 				Label header = new Label ("<span size='x-large'><b>" +
 						                _("Welcome to SparkleShare!") +
@@ -91,7 +92,7 @@ namespace SparkleShare {
 					};
 
 
-					EmailEntry = new Entry (SparkleShare.UserEmail);
+					EmailEntry = new Entry (SparkleShare.Controller.UserEmail);
 					EmailEntry.Changed += delegate {
 						CheckAccountForm ();
 					};
@@ -120,8 +121,14 @@ namespace SparkleShare {
 						table.Sensitive       = false;
 
 						NextButton.ShowAll ();
+			
+						SparkleShare.Controller.UserName  = NameEntry.Text;
+						SparkleShare.Controller.UserEmail = EmailEntry.Text;
 
-						Configure ();
+						SparkleShare.Controller.GenerateKeyPair ();
+						SparkleShare.Controller.AddKey ();
+				
+						DeleteEvent += PreventClose;
 						ShowServerForm ();
 
 					};
@@ -349,10 +356,36 @@ namespace SparkleShare {
 							server = "ssh://git@gnome.org/git/";
 
 						string url  = server + "/" + name;
-						SparkleHelpers.DebugInfo ("Git", "[" + name + "] Formed URL: " + url);
+						Console.WriteLine ("View", "[" + name + "] Formed URL: " + url);
 
-						FetchFolder (url, name);
+						string canonical_name = System.IO.Path.GetFileNameWithoutExtension (name);
 
+				
+						DeleteEvent += PreventClose;
+						ShowSyncingPage (canonical_name);
+
+				
+						SparkleShare.Controller.FolderFetched += delegate {
+		
+							DeleteEvent -= PreventClose;
+					
+							Application.Invoke (delegate {
+								ShowSuccessPage (name);
+							});
+					
+						};
+				
+						SparkleShare.Controller.FolderFetchError += delegate {
+				
+							DeleteEvent -= PreventClose;
+				
+							Application.Invoke (delegate { ShowErrorPage (); });	
+				
+						};
+		
+				
+						SparkleShare.Controller.FetchFolder (url, name);
+		
 					};
 
 
@@ -455,17 +488,9 @@ namespace SparkleShare {
 						// A button that opens the synced folder
 						Button open_folder_button = new Button (_("Open Folder"));
 
-						open_folder_button.Clicked += delegate (object o, EventArgs args) {
+						open_folder_button.Clicked += delegate {
 
-							string path = SparkleHelpers.CombineMore (SparklePaths.SparklePath, folder_name);
-
-							Process process = new Process ();
-							process.StartInfo.FileName  = "xdg-open";
-							process.StartInfo.Arguments = path.Replace (" ", "\\ "); // Escape space-characters
-							process.Start ();
-
-							if (ServerFormOnly)
-								Destroy ();
+							SparkleShare.Controller.OpenSparkleShareFolder (folder_name);
 
 						};
 
@@ -589,11 +614,6 @@ namespace SparkleShare {
 
 					finish_button.Clicked += delegate (object o, EventArgs args) {
 
-						if (SparkleUI.StatusIcon == null)
-							SparkleUI.StatusIcon = new SparkleStatusIcon ();
-						else
-							SparkleUI.StatusIcon.UpdateMenu ();
-
 						Destroy ();
 
 					};
@@ -604,102 +624,6 @@ namespace SparkleShare {
 
 			ShowAll ();
 		
-		}
-
-
-		private void FetchFolder (string url, string name)
-		{
-
-			// Strip the '.git' from the name
-			string canonical_name = System.IO.Path.GetFileNameWithoutExtension (name);
-			string tmp_folder = SparkleHelpers.CombineMore (SparklePaths.SparkleTmpPath, canonical_name);
-
-			ShowSyncingPage (canonical_name);
-			SparkleFetcher fetcher = new SparkleFetcher (url, tmp_folder);
-
-
-			bool folder_exists = Directory.Exists (
-				SparkleHelpers.CombineMore (SparklePaths.SparklePath, canonical_name));
-
-			int i = 1;
-			while (folder_exists) {
-
-				i++;
-				folder_exists = Directory.Exists (
-					SparkleHelpers.CombineMore (SparklePaths.SparklePath, canonical_name + " (" + i + ")"));
-
-			}
-
-			string target_folder_name = canonical_name;
-
-			if (i > 1)
-				target_folder_name += " (" + i + ")";
-
-
-			fetcher.CloningStarted += delegate {
-
-				DeleteEvent += PreventClose;
-
-				SparkleHelpers.DebugInfo ("Git", "[" + canonical_name + "] Cloning Repository");
-
-			};
-
-
-			fetcher.Progress.ProgressChanged += delegate {
-				Application.Invoke (delegate { ProgressBar.Fraction = fetcher.Progress.Fraction;
-				ProgressBar.ShowAll ();
-				});
-				Console.WriteLine ("!!!!!!!!!!!UPDATED BAR!!!!!!!!1");
-			};
-
-
-			fetcher.CloningFinished += delegate {
-
-				DeleteEvent -= PreventClose;
-
-				SparkleHelpers.DebugInfo ("Git", "[" + canonical_name + "] Repository cloned");
-
-				SparkleHelpers.ClearAttributes (tmp_folder);
-
-				try {
-
-					string target_folder_path = SparkleHelpers.CombineMore (SparklePaths.SparklePath,
-						target_folder_name);
-
-					Directory.Move (tmp_folder, target_folder_path);
-
-				} catch (Exception e) {
-
-					SparkleHelpers.DebugInfo ("Git", "[" + name + "] Error moving folder: " + e.Message);
-
-				}
-
-				Application.Invoke (delegate { ShowSuccessPage (target_folder_name); });
-
-			};
-
-
-			fetcher.CloningFailed += delegate {
-
-				DeleteEvent -= PreventClose;
-
-				SparkleHelpers.DebugInfo ("Git", "[" + canonical_name + "] Cloning failed");
-
-				if (Directory.Exists (tmp_folder)) {
-
-					SparkleHelpers.ClearAttributes (tmp_folder);
-					Directory.Delete (tmp_folder, true);
-
-					SparkleHelpers.DebugInfo ("Config", "[" + name + "] Deleted temporary directory");
-
-				}
-
-				Application.Invoke (delegate { ShowErrorPage (); });
-
-			};
-
-			fetcher.Clone ();
-
 		}
 
 
@@ -744,10 +668,11 @@ namespace SparkleShare {
 				return;
 
 			bool IsFolder = !FolderEntry.Text.Trim ().Equals ("");
+			bool IsServer = !ServerEntry.Text.Trim ().Equals ("");
 
 			if (ServerEntry.Sensitive == true) {
 			
-				if (IsGitUrl (ServerEntry.Text) && IsFolder)
+				if (IsServer && IsFolder)
 					SyncButton.Sensitive = true;
 
 			} else if (IsFolder) {
@@ -759,90 +684,12 @@ namespace SparkleShare {
 		}
 
 
-		// Configures SparkleShare with the user's information
-		private void Configure ()
-		{
-
-			string config_file_path = SparkleHelpers.CombineMore (SparklePaths.SparkleConfigPath, "config");
-
-			string name  = NameEntry.Text;
-			string email = EmailEntry.Text;
-
-			// Write the user's information to a text file
-			TextWriter writer = new StreamWriter (config_file_path);
-			writer.WriteLine ("[user]\n" +
-			                  "\tname  = " + name + "\n" +
-			                  "\temail = " + email);
-			writer.Close ();
-
-			SparkleHelpers.DebugInfo ("Config", "Created '" + config_file_path + "'");
-
-			// Set the user's name and email globally
-			SparkleShare.UserName  = name;
-			SparkleShare.UserEmail = email;
-
-			GenerateKeyPair ();
-			SparkleShare.AddKey ();
-
-		}
-
-
-		// Generates and installs an RSA keypair to identify this system
-		private void GenerateKeyPair ()
-		{
-
-			string user_email = EmailEntry.Text;
-			string keys_path = SparklePaths.SparkleKeysPath;
-			string key_file_name = "sparkleshare." + user_email + ".key";
-
-			Process process = new Process () {
-				EnableRaisingEvents = true
-			};
-			
-			if (!Directory.Exists (keys_path))
-				Directory.CreateDirectory (keys_path);
-
-			if (!File.Exists (key_file_name)) {
-
-				process.StartInfo.WorkingDirectory = keys_path;
-				process.StartInfo.UseShellExecute = false;
-				process.StartInfo.RedirectStandardOutput = true;
-				process.StartInfo.FileName = "ssh-keygen";
-				
-				// -t is the crypto type
-				// -P is the password (none)
-				// -f is the file name to store the private key in
-				process.StartInfo.Arguments = "-t rsa -P \"\" -f " + key_file_name;
-
-				process.Start ();
-
-				process.Exited += delegate {
-
-					SparkleHelpers.DebugInfo ("Config", "Created key '" + key_file_name + "'");
-					SparkleHelpers.DebugInfo ("Config", "Created key '" + key_file_name + ".pub'");
-
-				};
-
-			}
-
-		}
-
-
 		// Checks to see if an email address is valid
-		private bool IsValidEmail(string email)
+		private bool IsValidEmail (string email)
 		{
 
-			Regex regex = new Regex(@"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$", RegexOptions.IgnoreCase);
+			Regex regex = new Regex (@"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$", RegexOptions.IgnoreCase);
 			return regex.IsMatch (email);
-
-		}
-
-
-		// Checks if a url is a valid git url
-		private static bool IsGitUrl (string url)
-		{
-			
-			return true;
 
 		}
 

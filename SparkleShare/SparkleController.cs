@@ -15,26 +15,34 @@
 //   along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 using Mono.Unix;
-using Mono.Unix.Native;
 using SparkleLib;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace SparkleShare {
 
-	public class SparkleController {
+	public abstract class SparkleController {
 
 		public List <SparkleRepo> Repositories;
 		public string FolderSize;
+		public bool FirstRun;
 
 
-		public event RepositoryListChangedEventHandler RepositoryListChanged;
-		public delegate void RepositoryListChangedEventHandler ();
+		public event OnQuitWhileSyncingEventHandler OnQuitWhileSyncing;
+		public delegate void OnQuitWhileSyncingEventHandler ();
+
+		public event FolderFetchedEventHandler FolderFetched;
+		public delegate void FolderFetchedEventHandler ();
+		
+		public event FolderFetchErrorEventHandler FolderFetchError;
+		public delegate void FolderFetchErrorEventHandler ();
+		
+		public event FolderListChangedEventHandler FolderListChanged;
+		public delegate void FolderListChangedEventHandler ();
 
 		public event FolderSizeChangedEventHandler FolderSizeChanged;
 		public delegate void FolderSizeChangedEventHandler (string folder_size);
@@ -48,9 +56,6 @@ namespace SparkleShare {
 		public event OnErrorEventHandler OnError;
 		public delegate void OnErrorEventHandler ();
 
-		public event OnFirstRunEventHandler OnFirstRun;
-		public delegate void OnFirstRunEventHandler ();
-
 		public event OnInvitationEventHandler OnInvitation;
 		public delegate void OnInvitationEventHandler (string invitation_file_path);
 
@@ -63,8 +68,6 @@ namespace SparkleShare {
 
 		public SparkleController ()
 		{
-
-			SetProcessName ("sparkleshare");
 
 			InstallLauncher ();
 			EnableSystemAutostart ();
@@ -115,15 +118,12 @@ namespace SparkleShare {
 			// Show the introduction screen if SparkleShare isn't configured
 			if (!File.Exists (global_config_file_path)) {
 
-				if (OnFirstRun != null)
-					OnFirstRun ();
+				FirstRun = true;
 
 			} else {
 
-				SparkleShare.UserName  = SparkleShare.GetUserName ();
-				SparkleShare.UserEmail = SparkleShare.GetUserEmail ();
-
-				SparkleShare.AddKey ();
+				FirstRun = false;
+				AddKey ();
 
 			}
 
@@ -136,6 +136,23 @@ namespace SparkleShare {
 		}
 
 
+		public List <string> Folders
+		{
+			
+			get	{
+			
+				List <string> folders = new List <string> ();
+				
+				foreach (SparkleRepo repo in Repositories)
+					folders.Add (repo.LocalPath);
+
+				return folders;
+				
+			}
+			
+		}
+		
+		
 		// Creates a folder in the user's home folder to store configuration
 		private void CreateConfigurationFolders ()
 		{
@@ -169,145 +186,18 @@ namespace SparkleShare {
 
 		// Creates a .desktop entry in autostart folder to
 		// start SparkleShare automatically at login
-		private void EnableSystemAutostart ()
-		{
-			if (!SparklePlatform.IsWindows) {
-				string autostart_path = SparkleHelpers.CombineMore (SparklePaths.HomePath, ".config", "autostart");
-				string desktopfile_path = SparkleHelpers.CombineMore (autostart_path, "sparkleshare.desktop");
-
-				if (!File.Exists (desktopfile_path)) {
-
-					if (!Directory.Exists (autostart_path))
-						Directory.CreateDirectory (autostart_path);
-
-					TextWriter writer = new StreamWriter (desktopfile_path);
-					writer.WriteLine ("[Desktop Entry]\n" +
-									  "Type=Application\n" +
-									  "Name=SparkleShare\n" +
-									  "Exec=sparkleshare start\n" +
-									  "Icon=folder-sparkleshare\n" +
-									  "Terminal=false\n" +
-									  "X-GNOME-Autostart-enabled=true\n" +
-									  "Categories=Network");
-					writer.Close ();
-
-					// Give the launcher the right permissions so it can be launched by the user
-					Syscall.chmod (desktopfile_path, FilePermissions.S_IRWXU);
-
-					SparkleHelpers.DebugInfo ("Config", "Created '" + desktopfile_path + "'");
-
-				}
-			}
-		}
-		
+		public abstract void EnableSystemAutostart ();
 
 		// Installs a launcher so the user can launch SparkleShare
 		// from the Internet category if needed
-		private void InstallLauncher ()
-		{
-			if (!SparklePlatform.IsWindows) {
-				string apps_path = SparkleHelpers.CombineMore (SparklePaths.HomePath, ".local", "share", "applications");
-				string desktopfile_path = SparkleHelpers.CombineMore (apps_path, "sparkleshare.desktop");
-
-				if (!File.Exists (desktopfile_path)) {
-
-					if (!Directory.Exists (apps_path))
-
-						Directory.CreateDirectory (apps_path);
-
-					TextWriter writer = new StreamWriter (desktopfile_path);
-					writer.WriteLine ("[Desktop Entry]\n" +
-									  "Type=Application\n" +
-									  "Name=SparkleShare\n" +
-									  "Comment=Share documents\n" +
-									  "Exec=sparkleshare start\n" +
-									  "Icon=folder-sparkleshare\n" +
-									  "Terminal=false\n" +
-									  "Categories=Network;");
-					writer.Close ();
-
-					// Give the launcher the right permissions so it can be launched by the user
-					Syscall.chmod (desktopfile_path, FilePermissions.S_IRWXU);
-
-					SparkleHelpers.DebugInfo ("Config", "Created '" + desktopfile_path + "'");
-
-				}
-			}
-		}
-
+		public abstract void InstallLauncher ();
 
 		// Adds the SparkleShare folder to the user's
 		// list of bookmarked places
-		private void AddToBookmarks ()
-		{
-
-			string bookmarks_file_path   = Path.Combine (SparklePaths.HomePath, ".gtk-bookmarks");
-			string sparkleshare_bookmark = "file://" + SparklePaths.SparklePath + " SparkleShare";
-
-			if (File.Exists (bookmarks_file_path)) {
-
-				StreamReader reader = new StreamReader (bookmarks_file_path);
-				string bookmarks = reader.ReadToEnd ();
-				reader.Close ();
-
-				if (!bookmarks.Contains (sparkleshare_bookmark)) {
-
-					TextWriter writer = File.AppendText (bookmarks_file_path);
-					writer.WriteLine ("file://" + SparklePaths.SparklePath + " SparkleShare");
-					writer.Close ();
-
-				}
-
-			} else {
-
-				StreamWriter writer = new StreamWriter (bookmarks_file_path);
-				writer.WriteLine ("file://" + SparklePaths.SparklePath + " SparkleShare");
-				writer.Close ();
-
-			}
-
-		}
-
+		public abstract void AddToBookmarks ();
 
 		// Creates the SparkleShare folder in the user's home folder
-		private bool CreateSparkleShareFolder ()
-		{
-
-			if (!Directory.Exists (SparklePaths.SparklePath)) {
-		
-				Directory.CreateDirectory (SparklePaths.SparklePath);
-				SparkleHelpers.DebugInfo ("Config", "Created '" + SparklePaths.SparklePath + "'");
-
-				if (!SparklePlatform.IsWindows) {
-					string icon_file_path = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "icons", "hicolor",
-						"48x48", "apps", "folder-sparkleshare.png");
-
-					string gvfs_command_path = SparkleHelpers.CombineMore (Path.VolumeSeparatorChar.ToString (),
-						"usr", "bin", "gvfs-set-attribute");
-
-					// Add a special icon to the SparkleShare folder
-					if (File.Exists (gvfs_command_path)) {
-
-						Process process = new Process ();
-
-						process.StartInfo.RedirectStandardOutput = true;
-						process.StartInfo.UseShellExecute = false;
-
-						process.StartInfo.FileName = "gvfs-set-attribute";
-						process.StartInfo.Arguments = SparklePaths.SparklePath + " metadata::custom-icon " +
-													  "file://" + icon_file_path;
-						process.Start ();
-
-					}
-				}
-
-				return true;
-
-			}
-
-			return false;
-
-		}
+		public abstract bool CreateSparkleShareFolder ();
 
 
 		// Fires events for the current syncing state
@@ -404,8 +294,8 @@ namespace SparkleShare {
 			Repositories.Add (repo);
 
 
-			if (RepositoryListChanged != null)
-				RepositoryListChanged ();
+			if (FolderListChanged != null)
+				FolderListChanged ();
 
 		}
 
@@ -433,8 +323,8 @@ namespace SparkleShare {
 			}
 
 
-			if (RepositoryListChanged != null)
-				RepositoryListChanged ();
+			if (FolderListChanged != null)
+				FolderListChanged ();
 
 		}
 
@@ -449,8 +339,8 @@ namespace SparkleShare {
 			foreach (string folder_path in Directory.GetDirectories (SparklePaths.SparklePath))
 				AddRepository (folder_path);
 
-			if (RepositoryListChanged != null)
-				RepositoryListChanged ();
+			if (FolderListChanged != null)
+				FolderListChanged ();
 
 		}
 
@@ -550,12 +440,19 @@ namespace SparkleShare {
 
         }
 
-
 		public void OpenSparkleShareFolder ()
+		{
+		
+			OpenSparkleShareFolder ("");
+			
+		}
+
+		public void OpenSparkleShareFolder (string subfolder)
 		{
 
 			Process process = new Process ();
-			process.StartInfo.Arguments = SparklePaths.SparklePath;
+			process.StartInfo.Arguments = SparkleHelpers.CombineMore (SparklePaths.SparklePath,
+				subfolder).Replace (" ", "\\ "); // Escape space-characters
 
 			string open_command_path = SparkleHelpers.CombineMore (Path.VolumeSeparatorChar.ToString (),
 				"usr", "bin");
@@ -583,32 +480,279 @@ namespace SparkleShare {
 		}
 
 
-		// Sets the unix process name to 'sparkleshare' instead of 'mono'
-		private void SetProcessName (string name)
+		// Adds the user's SparkleShare key to the ssh-agent,
+		// so all activity is done with this key
+		public void AddKey ()
 		{
-			if (!SparklePlatform.IsWindows) {
-				try {
 
-					if (prctl (15, Encoding.ASCII.GetBytes (name + "\0"), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero) != 0) {
+			string keys_path = SparklePaths.SparkleKeysPath;
+			string key_file_name = "sparkleshare." + UserEmail + ".key";
 
-						throw new ApplicationException ("Error setting process name: " +
-							Mono.Unix.Native.Stdlib.GetLastError ());
+			Process process = new Process ();
+			process.StartInfo.RedirectStandardOutput = true;
+			process.StartInfo.UseShellExecute        = false;
+			process.StartInfo.FileName               = "ssh-add";
+			process.StartInfo.Arguments              = Path.Combine (keys_path, key_file_name);
+			process.Start ();
 
-					}
-
-				}
-				catch (EntryPointNotFoundException) {
-
-					Console.WriteLine ("SetProcessName: Entry point not found");
-
-				}
-			}
 		}
 
 
-		// Strange magic needed by SetProcessName
-		[DllImport ("libc")]
-		private static extern int prctl (int option, byte [] arg2, IntPtr arg3,	IntPtr arg4, IntPtr arg5);
+		// Looks up the user's name from the global configuration
+		public string UserName
+		{
+
+			get {
+
+				string global_config_file_path = SparkleHelpers.CombineMore (SparklePaths.SparkleConfigPath, "config");
+	
+				if (!File.Exists (global_config_file_path))
+				    return "";
+				
+				StreamReader reader = new StreamReader (global_config_file_path);
+				string global_config_file = reader.ReadToEnd ();
+				reader.Close ();
+				
+				Regex regex = new Regex (@"name.+= (.+)");
+				Match match = regex.Match (global_config_file);
+	
+				if (match.Success)
+					return match.Groups [1].Value;
+				else
+					return "";
+			
+			}
+
+			set {
+				
+				WriteUserInfo (value, UserEmail);
+					
+			}
+
+		}
+
+
+		// Looks up the user's email from the global configuration
+		public string UserEmail
+		{
+					
+			get { 
+						
+				string global_config_file_path = SparkleHelpers.CombineMore (SparklePaths.SparkleConfigPath, "config");
+	
+				// Look in the global config file first
+				if (File.Exists (global_config_file_path)) {
+	
+					StreamReader reader = new StreamReader (global_config_file_path);
+					string global_config_file = reader.ReadToEnd ();
+					reader.Close ();
+					
+					Regex regex = new Regex (@"email.+= (.+)");
+					Match match = regex.Match (global_config_file);
+	
+					if (match.Success)
+						return match.Groups [1].Value;
+					else
+						return "";
+	
+				} else { // Secondly, look at the user's private key file name
+	
+					string keys_path = SparklePaths.SparkleKeysPath;
+	
+					if (!Directory.Exists (keys_path))
+						return "";
+	
+					foreach (string file_path in Directory.GetFiles (keys_path)) {
+	
+						string file_name = System.IO.Path.GetFileName (file_path);
+	
+						if (file_name.StartsWith ("sparkleshare.") && file_name.EndsWith (".key")) {
+									
+							Regex regex = new Regex (@"sparkleshare\.(.+)\.key");
+							Match match = regex.Match (file_name);
+	
+							if (match.Success)
+								return match.Groups [1].Value;
+							else
+								return "";
+		
+						}
+	
+					}
+	
+					return "";
+					
+				}
+
+			}
+					
+			set {
+			
+				WriteUserInfo (UserName, value);
+						
+			}
+						
+		}
+		
+		
+		private void WriteUserInfo (string user_name, string user_email)
+		{
+			
+			string global_config_file_path = SparkleHelpers.CombineMore (SparklePaths.SparkleConfigPath, "config");
+
+			// Write the user's information to a text file
+			TextWriter writer = new StreamWriter (global_config_file_path);
+			writer.WriteLine ("[user]\n" +
+			                  "\tname  = " + user_name + "\n" +
+			                  "\temail = " + user_email);
+			writer.Close ();
+
+			SparkleHelpers.DebugInfo ("Config", "Created '" + global_config_file_path + "'");
+			
+		}
+
+
+		// Generates and installs an RSA keypair to identify this system
+		public void GenerateKeyPair ()
+		{
+
+			string keys_path = SparklePaths.SparkleKeysPath;
+			string key_file_name = "sparkleshare." + UserEmail + ".key";
+
+			Process process = new Process () {
+				EnableRaisingEvents = true
+			};
+			
+			if (!Directory.Exists (keys_path))
+				Directory.CreateDirectory (keys_path);
+
+			if (!File.Exists (key_file_name)) {
+
+				process.StartInfo.WorkingDirectory = keys_path;
+				process.StartInfo.UseShellExecute = false;
+				process.StartInfo.RedirectStandardOutput = true;
+				process.StartInfo.FileName = "ssh-keygen";
+				
+				// -t is the crypto type
+				// -P is the password (none)
+				// -f is the file name to store the private key in
+				process.StartInfo.Arguments = "-t rsa -P \"\" -f " + key_file_name;
+
+				process.Start ();
+
+				process.Exited += delegate {
+
+					SparkleHelpers.DebugInfo ("Config", "Created key '" + key_file_name + "'");
+					SparkleHelpers.DebugInfo ("Config", "Created key '" + key_file_name + ".pub'");
+
+				};
+
+			}
+
+		}
+
+
+		public void FetchFolder (string url, string name)
+		{
+
+			// Strip the '.git' from the name
+			string canonical_name = System.IO.Path.GetFileNameWithoutExtension (name);
+			string tmp_folder = SparkleHelpers.CombineMore (SparklePaths.SparkleTmpPath, canonical_name);
+
+			SparkleFetcher fetcher = new SparkleFetcher (url, tmp_folder);
+
+
+			bool folder_exists = Directory.Exists (
+				SparkleHelpers.CombineMore (SparklePaths.SparklePath, canonical_name));
+
+			// Add a numbered suffix to the nameif a folder with the same name
+			// already exists. Example: "Folder (2)"
+			int i = 1;
+			while (folder_exists) {
+
+				i++;
+				folder_exists = Directory.Exists (
+					SparkleHelpers.CombineMore (SparklePaths.SparklePath, canonical_name + " (" + i + ")"));
+
+			}
+
+			string target_folder_name = canonical_name;
+
+			if (i > 1)
+				target_folder_name += " (" + i + ")";
+
+
+			fetcher.CloningFinished += delegate {
+
+				SparkleHelpers.ClearAttributes (tmp_folder);
+
+				try {
+
+					string target_folder_path = SparkleHelpers.CombineMore (SparklePaths.SparklePath,
+						target_folder_name);
+
+					Directory.Move (tmp_folder, target_folder_path);
+
+				} catch (Exception e) {
+
+					SparkleHelpers.DebugInfo ("Controller", "Error moving folder: " + e.Message);
+
+					}
+
+				
+				if (FolderFetched != null)
+					FolderFetched ();
+				
+				if (FolderListChanged != null)
+					FolderListChanged ();		
+
+			};
+
+
+			fetcher.CloningFailed += delegate {
+
+				if (Directory.Exists (tmp_folder)) {
+
+					SparkleHelpers.ClearAttributes (tmp_folder);
+					Directory.Delete (tmp_folder, true);
+
+					SparkleHelpers.DebugInfo ("Config", "Deleted temporary directory: " + tmp_folder);
+
+				}
+
+					
+				if (FolderFetchError != null)
+					FolderFetchError ();
+
+			};
+
+			fetcher.Start ();
+
+				}
+
+		
+		// Checks whether there are any folders syncing and
+		// quits if safe
+		public void TryQuit ()
+		{
+
+			foreach (SparkleRepo repo in Repositories) {	
+
+				if (repo.IsSyncing) {
+				
+					if (OnQuitWhileSyncing != null)
+						OnQuitWhileSyncing ();
+					
+					return;
+	
+			}
+			
+		}
+
+			Quit ();
+			
+		}
+
 
 		// Quits the program
 		public void Quit ()
@@ -617,8 +761,11 @@ namespace SparkleShare {
 			foreach (SparkleRepo repo in Repositories)
 				repo.Dispose ();
 
+			string pid_file_path = SparkleHelpers.CombineMore (SparklePaths.SparkleTmpPath, "sparkleshare.pid");
+			
 			// Remove the process ID file
-			File.Delete (SparkleHelpers.CombineMore (SparklePaths.SparkleTmpPath, "sparkleshare.pid"));
+			if (File.Exists (pid_file_path))
+				File.Delete (pid_file_path);
 
 			Environment.Exit (0);
 

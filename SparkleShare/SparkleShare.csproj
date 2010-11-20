@@ -58,10 +58,12 @@
     <Compile Include="SparkleController.cs" />
     <Compile Include="SparkleDialog.cs" />
     <Compile Include="SparkleIntro.cs" />
+    <Compile Include="SparkleLinController.cs" />
     <Compile Include="SparkleShare.cs" />
     <Compile Include="SparkleSpinner.cs" />
     <Compile Include="SparkleStatusIcon.cs" />
     <Compile Include="SparkleUI.cs" />
+    <Compile Include="SparkleWinController.cs" />
     <Compile Include="SparkleWindow.cs" />
     <Compile Include="SparkleEntry.cs" />
     <Compile Include="SparkleInvitation.cs" />

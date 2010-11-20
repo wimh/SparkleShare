@@ -53,16 +53,13 @@ namespace SparkleShare {
 			// Keep track of which event logs are open
 			SparkleUI.OpenLogs = new List <SparkleLog> ();
 
-			if (SparkleShare.Controller.FirstRun) {
+			SparkleShare.Controller.OnFirstRun += delegate {
+				Application.Invoke (delegate {
 
 					SparkleIntro intro = new SparkleIntro ();
 					intro.ShowAll ();
-					intro.Present ();
 
-			}
-			
-			SparkleShare.Controller.OnQuitWhileSyncing += delegate {
-				// TODO: Pop up a warning when quitting whilst syncing	
+				});
 			};
 
 			SparkleShare.Controller.OnInvitation += delegate (string invitation_file_path) {

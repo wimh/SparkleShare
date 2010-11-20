@@ -14,14 +14,16 @@
 //   You should have received a copy of the GNU General Public License
 //   along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-using Gtk;
 using Mono.Unix;
+using Mono.Unix.Native;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using SparkleLib;
 using SparkleLib.Options;
+using System.Text;
 
 namespace SparkleShare {
 
@@ -30,8 +32,6 @@ namespace SparkleShare {
 
 		public static SparkleController Controller;
 		public static SparkleUI UI;
-		public static string UserName;
-		public static string UserEmail;
 
 
 		// Short alias for the translations
@@ -43,7 +43,7 @@ namespace SparkleShare {
 
 		public static void Main (string [] args)
 		{
-
+	
 			// Use translations
 			Catalog.Init (Defines.GETTEXT_PACKAGE, Defines.LOCALE_DIR);
 
@@ -85,11 +85,33 @@ namespace SparkleShare {
 			if (show_help)
 				ShowHelp (p);
 
-			Controller = new SparkleController ();
-			if (!hide_ui) {
-				UI = new SparkleUI();
-				UI.Run();
+			
+			switch (Environment.OSVersion.Platform) {
+
+				case PlatformID.Unix:
+					SetProcessName ("sparkleshare");
+					Controller = new SparkleLinController ();
+				break;
+
+				case PlatformID.MacOSX:
+					throw new NotImplementedException();
+					//Controller = new SparkleMacController ();
+				break;
+				
+				case PlatformID.Win32NT:
+					Controller = new SparkleWinController ();
+				break;
+
 			}
+
+			
+			if (!hide_ui) {
+
+				UI = new SparkleUI ();
+				UI.Run ();
+
+			}
+
 		}
 
 
@@ -129,98 +151,33 @@ namespace SparkleShare {
 
 		}
 
-
-		// Looks up the user's name from the global configuration
-		public static string GetUserName ()
+		
+		// Sets the Unix process name to 'sparkleshare' instead of 'mono'
+		private static void SetProcessName (string name)
 		{
 
-			string global_config_file_path = SparkleHelpers.CombineMore (SparklePaths.SparkleConfigPath, "config");
+			try {
 
-			StreamReader reader = new StreamReader (global_config_file_path);
+				if (prctl (15, Encoding.ASCII.GetBytes (name + "\0"), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero) != 0) {
 
-			// Discard the first line
-			reader.ReadLine ();
-
-			string line = reader.ReadLine ();
-			reader.Close ();
-
-			string name = line.Substring (line.IndexOf ("=") + 2);
-
-			return name;
-
-		}
-
-
-		// Looks up the user's email from the global configuration
-		public static string GetUserEmail ()
-		{
-
-			string email = "";
-			string global_config_file_path = SparkleHelpers.CombineMore (SparklePaths.SparkleConfigPath, "config");
-
-			// Look in the global config file first
-			if (File.Exists (global_config_file_path)) {
-
-				StreamReader reader = new StreamReader (global_config_file_path);
-
-				// Discard the first two lines
-				reader.ReadLine ();
-				reader.ReadLine ();
-
-				string line = reader.ReadLine ();
-				reader.Close ();
-
-				email = line.Substring (line.IndexOf ("=") + 2);
-
-				return email;
-
-			// Secondly, look at the user's private key file name
-			} else {
-
-				string keys_path = SparklePaths.SparkleKeysPath;
-
-				if (!Directory.Exists (keys_path))
-					return "";
-
-				foreach (string file_path in Directory.GetFiles (keys_path)) {
-
-					string file_name = System.IO.Path.GetFileName (file_path);
-
-					if (file_name.StartsWith ("sparkleshare.") && file_name.EndsWith (".key")) {
-
-						email = file_name.Substring (file_name.IndexOf (".") + 1);
-						email = email.Substring (0, email.LastIndexOf ("."));
-
-						return email;
-
-					}
+					throw new ApplicationException ("Error setting process name: " +
+						Mono.Unix.Native.Stdlib.GetLastError ());
 
 				}
 
-				return "";
+			} catch (EntryPointNotFoundException) {
+
+				Console.WriteLine ("SetProcessName: Entry point not found");
 
 			}
 
 		}
 
 
-		// Adds the user's SparkleShare key to the ssh-agent,
-		// so all activity is done with this key
-		public static void AddKey ()
-		{
-
-			string keys_path = SparklePaths.SparkleKeysPath;
-			string key_file_name = "sparkleshare." + UserEmail + ".key";
-
-			Process process = new Process ();
-			process.StartInfo.RedirectStandardOutput = true;
-			process.StartInfo.UseShellExecute        = false;
-			process.StartInfo.FileName               = "ssh-add";
-			process.StartInfo.Arguments              = Path.Combine (keys_path, key_file_name);
-			process.Start ();
-
-		}
-
+		// Strange magic needed by SetProcessName
+		[DllImport ("libc")]
+		private static extern int prctl (int option, byte [] arg2, IntPtr arg3,	IntPtr arg4, IntPtr arg5);
+		
 	}
 	
 }

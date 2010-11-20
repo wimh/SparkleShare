@@ -9,11 +9,6 @@
     <OutputType>Library</OutputType>
     <RootNamespace>SparkleLib</RootNamespace>
     <AssemblyName>SparkleLib</AssemblyName>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <OldToolsVersion>2.0</OldToolsVersion>
-    <UpgradeBackupLocation>
-    </UpgradeBackupLocation>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -40,8 +35,40 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="Mono.Posix" />
+    <Reference Include="DiffieHellman, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\GitSharp\lib\DiffieHellman.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.85.4.369, Culture=neutral, PublicKeyToken=null">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\GitSharp\lib\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Org.Mentalis.Security, Version=1.0.13.715, Culture=neutral, PublicKeyToken=null">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\GitSharp\lib\Org.Mentalis.Security.dll</HintPath>
+    </Reference>
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="Tamir.SharpSSH, Version=1.1.1.13, Culture=neutral, PublicKeyToken=null">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\GitSharp\lib\Tamir.SharpSSH.dll</HintPath>
+    </Reference>
+    <Reference Include="Winterdom.IO.FileMap, Version=2.0.2.0, Culture=neutral, PublicKeyToken=4982617362e1edb5">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\GitSharp\lib\Winterdom.IO.FileMap.dll</HintPath>
+    </Reference>
+    <Reference Include="GitSharp.Core, Version=0.3.0.0, Culture=neutral, PublicKeyToken=null">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\bin\GitSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="GitSharp, Version=0.3.0.0, Culture=neutral, PublicKeyToken=null">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\bin\GitSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Meebey.SmartIrc4net, Version=0.4.5.0, Culture=neutral, PublicKeyToken=7868485fbf407e0f">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\bin\Meebey.SmartIrc4net.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -59,7 +86,7 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>
-      <Properties InternalTargetFrameworkVersion="3.5">
+      <Properties>
         <MonoDevelop.Autotools.MakefileInfo IntegrationEnabled="true" RelativeMakefileName="Makefile.am">
           <BuildFilesVar Sync="true" Name="SOURCES" />
           <DeployFilesVar />
@@ -73,14 +100,4 @@
     </MonoDevelop>
     <VisualStudio />
   </ProjectExtensions>
-  <ItemGroup>
-    <ProjectReference Include="..\GitSharp\GitSharp.Core\GitSharp.Core.csproj">
-      <Project>{C46EDD61-C202-465A-93F1-ADE20A83BB59}</Project>
-      <Name>GitSharp.Core</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GitSharp\GitSharp\GitSharp.csproj">
-      <Project>{7311850F-619A-4241-B09F-157792C75FBA}</Project>
-      <Name>GitSharp</Name>
-    </ProjectReference>
-  </ItemGroup>
 </Project>

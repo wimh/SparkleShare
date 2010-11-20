@@ -4,7 +4,7 @@ SUBDIRS =	\
 ASSEMBLY = SparkleShare
 TARGET = exe
 
-LINK = $(REF_SPARKLESHARE) -pkg:webkit-sharp-1.0
+LINK = $(REF_SPARKLESHARE)
 
 
 SOURCES =  \
@@ -15,6 +15,7 @@ SOURCES =  \
 	SparkleInfobar.cs \
 	SparkleIntro.cs \
 	SparkleInvitation.cs \
+	SparkleLinController.cs \
 	SparkleLink.cs \
 	SparkleLog.cs \
 	SparkleShare.cs \
