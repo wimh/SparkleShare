@@ -8,7 +8,7 @@
 //
 //   This program is distributed in the hope that it will be useful,
 //   but WITHOUT ANY WARRANTY; without even the implied warranty of
-//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //   GNU General Public License for more details.
 //
 //   You should have received a copy of the GNU General Public License
@@ -48,7 +48,9 @@ namespace SparkleShare {
 
 			HBox = new HBox (false, 6);
 
-				string image_path = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "pixmaps",	"side-splash.png");
+				string image_path = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "sparkleshare",
+			    	"pixmaps", "side-splash.png");
+
 				Image side_splash = new Image (image_path);
 
 				VBox = new VBox (false, 0);

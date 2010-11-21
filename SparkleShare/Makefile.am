@@ -4,7 +4,7 @@ SUBDIRS =	\
 ASSEMBLY = SparkleShare
 TARGET = exe
 
-LINK = $(REF_SPARKLESHARE)
+LINK = $(REF_SPARKLESHARE) $(NOTIFY_SHARP_LIBS)
 
 
 SOURCES =  \
@@ -14,7 +14,6 @@ SOURCES =  \
 	SparkleEntry.cs \
 	SparkleInfobar.cs \
 	SparkleIntro.cs \
-	SparkleInvitation.cs \
 	SparkleLinController.cs \
 	SparkleLink.cs \
 	SparkleLog.cs \

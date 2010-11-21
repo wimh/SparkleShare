@@ -8,7 +8,7 @@
 //
 //   This program is distributed in the hope that it will be useful,
 //   but WITHOUT ANY WARRANTY; without even the implied warranty of
-//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //   GNU General Public License for more details.
 //
 //   You should have received a copy of the GNU General Public License
@@ -41,12 +41,12 @@ namespace SparkleLib {
 
 			Server  = server;
 			Channel = channel;
+			Nick    = nick;
 			
-			//TODO: check why nick is sometimes null
-			if (Nick != null)
-			Nick    = nick.Replace ("@", "_at_").Replace (".", "_dot_");
+			if (!Nick.Equals (""))
+				Nick = nick.Replace ("@", "_at_").Replace (".", "_dot_");
 			else
-				Nick = "oops";
+				Nick = "anonymous";
 			
 			// Keep the nick short
 			if (Nick.Length > 9)

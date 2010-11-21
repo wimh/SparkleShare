@@ -8,7 +8,7 @@
 //
 //   This program is distributed in the hope that it will be useful,
 //   but WITHOUT ANY WARRANTY; without even the implied warranty of
-//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //   GNU General Public License for more details.
 //
 //   You should have received a copy of the GNU General Public License
@@ -55,21 +55,22 @@ namespace SparkleShare {
 
 			if (SparkleShare.Controller.FirstRun) {
 
-					SparkleIntro intro = new SparkleIntro ();
-					intro.ShowAll ();
-					intro.Present ();
+				SparkleIntro intro = new SparkleIntro ();
+				intro.ShowAccountForm ();
 
 			}
 			
 			SparkleShare.Controller.OnQuitWhileSyncing += delegate {
+				
 				// TODO: Pop up a warning when quitting whilst syncing	
+
 			};
 
-			SparkleShare.Controller.OnInvitation += delegate (string invitation_file_path) {
+			SparkleShare.Controller.OnInvitation += delegate (string server, string folder, string token) {
 				Application.Invoke (delegate {
-
-					SparkleInvitation invitation = new SparkleInvitation (invitation_file_path);
-					invitation.Present ();				
+					
+					SparkleIntro intro = new SparkleIntro ();
+					intro.ShowInvitationPage (server, folder, token);
 
 				});
 			};

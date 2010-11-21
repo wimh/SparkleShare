@@ -81,10 +81,6 @@
       <Project>{7311850F-619A-4241-B09F-157792C75FBA}</Project>
       <Name>GitSharp %28GitSharp\GitSharp%29</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NotifySharp\NotifySharp.csproj">
-      <Project>{005CCA8E-DFBF-464A-B6DA-452C62D4589C}</Project>
-      <Name>NotifySharp</Name>
-    </ProjectReference>
     <ProjectReference Include="..\SparkleLib\SparkleLib.csproj">
       <Project>{2C914413-B31C-4362-93C7-1AE34F09112A}</Project>
       <Name>SparkleLib</Name>
