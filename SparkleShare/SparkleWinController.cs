@@ -24,6 +24,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace SparkleShare {
 
@@ -39,6 +40,8 @@ namespace SparkleShare {
 			// Asume it is installed in @"C:\msysgit\msysgit\bin" for now
 			string newPath = System.Environment.ExpandEnvironmentVariables("%PATH%;") + @"C:\msysgit\msysgit\bin";
 			System.Environment.SetEnvironmentVariable("PATH", newPath);
+
+			StartSshAgent ();
 
 			base.Init();
 		}
@@ -68,7 +71,16 @@ namespace SparkleShare {
 		// Creates the SparkleShare folder in the user's home folder
 		public override bool CreateSparkleShareFolder ()
 		{
-			return true;
+			if (!Directory.Exists (SparklePaths.SparklePath)) {
+
+				Directory.CreateDirectory (SparklePaths.SparklePath);
+				SparkleHelpers.DebugInfo ("Config", "Created '" + SparklePaths.SparklePath + "'");
+
+				return true;
+
+			}
+
+			return false;
 		}
 
 		public override void OpenSparkleShareFolder (string subfolder)
@@ -78,6 +90,36 @@ namespace SparkleShare {
 			process.StartInfo.FileName = "explorer";
 			
 			process.Start();
+		}
+
+		private void StartSshAgent ()
+		{
+			if (String.IsNullOrEmpty (System.Environment.GetEnvironmentVariable ("SSH_AUTH_SOCK"))) {
+
+				Process process = new Process ();
+				process.StartInfo.FileName = "ssh-agent";
+				process.StartInfo.UseShellExecute = false;
+				process.StartInfo.RedirectStandardOutput = true;
+
+				process.Start ();
+
+				string Output = process.StandardOutput.ReadToEnd ();
+				process.WaitForExit ();
+
+				Match AuthSock = new Regex (@"SSH_AUTH_SOCK=([^;\n\r]*)").Match (Output);
+				if (AuthSock.Success) {
+					System.Environment.SetEnvironmentVariable ("SSH_AUTH_SOCK", AuthSock.Groups[1].Value);
+				}
+
+				Match AgentPid = new Regex (@"SSH_AGENT_PID=([^;\n\r]*)").Match (Output);
+				if (AgentPid.Success) {
+					System.Environment.SetEnvironmentVariable ("SSH_AGENT_PID", AgentPid.Groups[1].Value);
+					SparkleHelpers.DebugInfo ("SSH", "ssh-agent started, PID=" + AgentPid.Groups[1].Value);
+				}
+				else {
+					SparkleHelpers.DebugInfo ("SSH", "ssh-agent started, PID=unknown");
+				}
+			}
 		}
 
 
