@@ -42,6 +42,8 @@ namespace SparkleLib {
 		public static string SparkleIconPath = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "sparkleshare",
 			"icons");
 
+		public static string Git = SparklePlatform.IsWindows ? "git" : "/opt/local/bin/git";
+
 		private static string GetHomePath()
 		{
 			if (SparklePlatform.IsWindows) {

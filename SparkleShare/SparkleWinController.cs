@@ -38,8 +38,14 @@ namespace SparkleShare {
 		{
 			// Add msysgit to path, as we cannot asume it is added to the path
 			// Asume it is installed in @"C:\msysgit\msysgit\bin" for now
-			string newPath = System.Environment.ExpandEnvironmentVariables("%PATH%;") + @"C:\msysgit\msysgit\bin";
-			System.Environment.SetEnvironmentVariable("PATH", newPath);
+			string MSysGit=@"C:\msysgit\msysgit";
+
+			string newPath = MSysGit + @"\bin" + ";"
+			               + MSysGit + @"\mingw\bin" + ";"
+			               + MSysGit + @"\cmd" + ";"
+			               + System.Environment.ExpandEnvironmentVariables ("%PATH%");
+			System.Environment.SetEnvironmentVariable ("PATH", newPath);
+			System.Environment.SetEnvironmentVariable ("PLINK_PROTOCOL", "ssh");
 
 			StartSshAgent ();
 
