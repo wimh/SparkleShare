@@ -1008,6 +1008,15 @@ namespace SparkleLib {
 		private string FormatCommitMessage ()
 		{
 
+			/// RepositoryStatus contains the following properties (all HashSet<string>)
+			/// * Added ---> added and staged
+			/// * MergeConflict --->
+			/// * Missing ---> removed but not staged
+			/// * Modified ---> modified but not staged
+			/// * Removed ---> removed and staged
+			/// * Staged ---> modified and staged
+			/// * Untracked ---> added but not staged
+			/// Because we create the commitmessage, we only need to consider the staged changes
 			RepositoryStatus status = Index.Status;
 
 			string file_name = "";
@@ -1024,12 +1033,12 @@ namespace SparkleLib {
 
 			}
 
-			if (status.Modified.Count > 0) {
+			if (status.Staged.Count > 0) {
 
-				foreach (string modified in status.Modified) {
+				foreach (string modified in status.Staged) {
 					file_name = modified;
 					break;
-				}
+			}
 
 				message = "/ ‘" + file_name + "’";
 
@@ -1040,14 +1049,14 @@ namespace SparkleLib {
 				foreach (string removed in status.Removed) {
 					file_name = removed;
 					break;
-				}
+			}
 
 				message = "- ‘" + file_name + "’";
 
 			}
 
 			int changes_count = (status.Added.Count +
-			                     status.Modified.Count +
+								 status.Staged.Count +
 			                     status.Removed.Count);
 
 			if (changes_count > 1)
