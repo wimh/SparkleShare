@@ -71,20 +71,15 @@ namespace SparkleLib {
 			process.StartInfo.Arguments = "clone --progress " +
 			                              "\"" + RemoteOriginUrl + "\" " + "\"" + TargetFolder + "\"";
 
-Timer timer = new Timer () {
-Interval = 1000
-};
-timer.Elapsed += delegate {
-Console.WriteLine ("ppppppppppppppp");
-				Console.WriteLine (process.StandardError.ReadToEnd ());
-				
-};
 			process.ErrorDataReceived += delegate (object o, DataReceivedEventArgs args) {
-				Console.WriteLine (">>>>>>>>>" + args.Data);
+				Console.WriteLine ("stderr>" + args.Data);
 				Progress.Speed = "";
 				Progress.Fraction = 0;
 			};
 
+			process.OutputDataReceived += delegate (object o, DataReceivedEventArgs args) {
+				Console.WriteLine ("stdout>" + args.Data);
+			};
 
 			process.Exited += delegate {
 
@@ -110,9 +105,11 @@ Console.WriteLine ("ppppppppppppppp");
 				}
 
 			};
-timer.Start();
+
 			process.Start ();
+
 			process.BeginErrorReadLine ();
+			process.BeginOutputReadLine ();
 
 		}
 
