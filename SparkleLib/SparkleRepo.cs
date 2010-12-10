@@ -258,7 +258,7 @@ namespace SparkleLib {
 				EnableRaisingEvents = true
 			};
 
-			Process.StartInfo.FileName = SparklePaths.Git;
+			Process.StartInfo.FileName = SparklePaths.GitPath;
 			Process.StartInfo.RedirectStandardOutput = true;
 			Process.StartInfo.UseShellExecute = false;
 			Process.StartInfo.WorkingDirectory = LocalPath;
@@ -430,7 +430,7 @@ namespace SparkleLib {
 				EnableRaisingEvents = true
 			};
 
-			process.StartInfo.FileName               = SparklePaths.Git;
+			process.StartInfo.FileName               = SparklePaths.GitPath;
 			process.StartInfo.RedirectStandardOutput = true;
 			process.StartInfo.UseShellExecute        = false;
 			process.StartInfo.WorkingDirectory       = LocalPath;
@@ -663,7 +663,7 @@ namespace SparkleLib {
 				EnableRaisingEvents = true
 			};
 
-			process.StartInfo.FileName               = SparklePaths.Git;
+			process.StartInfo.FileName               = SparklePaths.GitPath;
 			process.StartInfo.RedirectStandardOutput = true;
 			process.StartInfo.UseShellExecute        = false;
 			process.StartInfo.WorkingDirectory       = LocalPath;
@@ -831,9 +831,9 @@ namespace SparkleLib {
 
 			Process.StartInfo.Arguments = "push origin master";
 
-			Process.Start ();
 			Process.WaitForExit ();
-
+			Process.Start ();
+			
 			Process.Exited += delegate {
 
 				_IsSyncing = false;
@@ -889,7 +889,7 @@ namespace SparkleLib {
 			    file_path.Contains (".git")  ||
 			    file_path.Contains ("/.")    ||
 			    file_path.EndsWith (".swp")  ||
-			    System.IO.Directory.Exists (LocalPath + file_path)) {
+			    System.IO.Directory.Exists (Path.Combine (LocalPath, file_path))) {
 
 				return true; // Yes, ignore it
 
@@ -971,9 +971,13 @@ namespace SparkleLib {
 
 					Commit commit = new Commit (this, commit_ref);
 
-					SparkleCommit sparkle_commit = new SparkleCommit (commit.Author.Name, commit.Author.EmailAddress,
-						commit.CommitDate.DateTime, commit.Hash);
+					SparkleCommit sparkle_commit = new SparkleCommit ();
 
+					sparkle_commit.UserName  = commit.Author.Name;
+					sparkle_commit.UserEmail = commit.Author.EmailAddress;
+					sparkle_commit.DateTime  = commit.CommitDate.DateTime;
+					sparkle_commit.Hash      = commit.Hash;
+					
 					foreach (Change change in commit.Changes) {
 
 						if (change.ChangeType.ToString ().Equals ("Added"))
@@ -1008,15 +1012,18 @@ namespace SparkleLib {
 		private string FormatCommitMessage ()
 		{
 
-			/// RepositoryStatus contains the following properties (all HashSet<string>)
-			/// * Added ---> added and staged
-			/// * MergeConflict --->
-			/// * Missing ---> removed but not staged
-			/// * Modified ---> modified but not staged
-			/// * Removed ---> removed and staged
-			/// * Staged ---> modified and staged
-			/// * Untracked ---> added but not staged
-			/// Because we create the commitmessage, we only need to consider the staged changes
+			// RepositoryStatus contains the following properties (all HashSet <string>)
+			// 
+			// * Added         ---> added and staged
+			// * MergeConflict --->
+			// * Missing       ---> removed but not staged
+			// * Modified      ---> modified but not staged
+			// * Removed       ---> removed and staged
+			// * Staged        ---> modified and staged
+			// * Untracked     ---> added but not staged
+			//
+			// Because we create the commit message, we only need to consider the staged changes
+
 			RepositoryStatus status = Index.Status;
 
 			string file_name = "";

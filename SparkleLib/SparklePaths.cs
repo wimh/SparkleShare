@@ -15,6 +15,7 @@
 //   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using Mono.Unix;
 
@@ -22,9 +23,9 @@ namespace SparkleLib {
 	
 	public static class SparklePaths
 	{
-		/// <summary>
-		/// Home directory under which the Sparkleshare local configuration is stored
-		/// </summary>
+		
+		public static string GitPath = GetGitPath ();
+
 		public static string HomePath = GetHomePath();
 
 		public static string SparklePath = Path.Combine (HomePath ,"SparkleShare");
@@ -39,10 +40,9 @@ namespace SparkleLib {
 
 		public static string SparkleLocalIconPath = SparkleHelpers.CombineMore (SparkleConfigPath, "icons", "hicolor");
 
-		public static string SparkleIconPath = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "sparkleshare",
+		public static string SparkleIconPath = SparkleHelpers.CombineMore (Defines.DATAROOTDIR, "sparkleshare",
 			"icons");
 
-		public static string Git = SparklePlatform.IsWindows ? "git" : "/opt/local/bin/git";
 
 		private static string GetHomePath()
 		{
@@ -55,6 +55,30 @@ namespace SparkleLib {
 
 			return UnixUserInfo.HomeDirectory;
 		}
+		
+		private static string GetGitPath ()
+		{
+
+			if (SparklePlatform.IsWindows)
+				return "git";
+		
+			Process process = new Process ();
+			
+			process.StartInfo.RedirectStandardOutput = true;
+			process.StartInfo.UseShellExecute        = false;
+			process.StartInfo.FileName               = "which";
+			process.StartInfo.Arguments              = "git";
+			process.Start ();
+			
+			string git_path = process.StandardOutput.ReadToEnd ().Trim ();
+
+			if (!string.IsNullOrEmpty (git_path))
+				return git_path;
+			else
+				return null;
+		
+		}
+
 	}
 
 }

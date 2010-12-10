@@ -35,7 +35,6 @@ namespace SparkleLib {
 
 		private string TargetFolder;
 		private string RemoteOriginUrl;
-		public SparkleProgress Progress;
 
 
 		public SparkleFetcher (string url, string folder)
@@ -43,7 +42,6 @@ namespace SparkleLib {
 
 			TargetFolder = folder;
 			RemoteOriginUrl = url;
-			Progress = new SparkleProgress ();
 
 		}
 
@@ -67,7 +65,7 @@ namespace SparkleLib {
 			process.StartInfo.RedirectStandardOutput = true;
 			process.StartInfo.RedirectStandardError = true;
 			process.StartInfo.UseShellExecute = false;
-			process.StartInfo.FileName = "git";
+			process.StartInfo.FileName = SparklePaths.GitPath;
 			process.StartInfo.Arguments = "clone --progress " +
 			                              "\"" + RemoteOriginUrl + "\" " + "\"" + TargetFolder + "\"";
 
@@ -158,67 +156,6 @@ namespace SparkleLib {
 			writer.WriteLine (".DS_store");
 
 			writer.Close ();
-
-		}
-
-	}
-
-
-	public class SparkleProgress {
-
-		public string _Speed;
-		public int _Fraction;
-
-		public delegate void ProgressChangedEventHandler ();
-		public event ProgressChangedEventHandler ProgressChanged;
-
-
-		public SparkleProgress ()
-		{
-
-			_Speed      = "0 B/s";
-			_Fraction = 0;
-
-		}
-
-
-		public string Speed
-		{
-
-			get {
-
-				return _Speed;
-
-			}
-
-			set {
-
-				_Speed = value;
-
-				if (ProgressChanged != null)
-					ProgressChanged ();
-
-			}
-
-		}
-
-		public int Fraction
-		{
-
-			get {
-
-				return _Fraction;
-
-			}
-
-			set {
-
-				_Fraction = value;
-
-				if (ProgressChanged != null)
-					ProgressChanged ();
-
-			}
 
 		}
 

@@ -207,6 +207,31 @@ namespace SparkleShare {
 		}
 		
 		
+		public List <ChangeSet> GetLog (string path)
+		{
+			
+			int log_size = 30;
+			
+			List <ChangeSet> list = new List <ChangeSet> ();
+			
+			foreach (SparkleRepo repo in Repositories) {
+			
+				if (repo.LocalPath.Equals (path)) {
+				
+					foreach (SparkleCommit commit in repo.GetCommits (log_size))
+						list.Add ((ChangeSet) commit);
+				
+					return list;
+					
+				}
+				
+			}
+			
+			return null;
+			
+		}
+		
+		
 		// Creates a folder in the user's home folder to store configuration
 		private void CreateConfigurationFolders ()
 		{
@@ -253,16 +278,9 @@ namespace SparkleShare {
 		// Creates the SparkleShare folder in the user's home folder
 		public abstract bool CreateSparkleShareFolder ();
 
-		// Opens a file browser in the sparkleshare folder
-		public void OpenSparkleShareFolder ()
-		{
-
-			OpenSparkleShareFolder("");
-
-		}
-
-		// Opens a file browser in the sparkleshare folder, or an optional subfolder
+		// Opens the SparkleShare folder or an (optional) subfolder
 		public abstract void OpenSparkleShareFolder (string subfolder);
+
 
 		// Fires events for the current syncing state
 		private void UpdateState ()
@@ -504,6 +522,13 @@ namespace SparkleShare {
 
         }
 
+		public void OpenSparkleShareFolder ()
+		{
+		
+			OpenSparkleShareFolder ("");
+			
+		}
+
 
 		// Adds the user's SparkleShare key to the ssh-agent,
 		// so all activity is done with this key
@@ -663,6 +688,8 @@ namespace SparkleShare {
 				// -f is the file name to store the private key in
 				process.StartInfo.Arguments = "-t rsa -P \"\" -f " + key_file_name;
 
+				process.Start ();
+
 				process.Exited += delegate {
 
 					SparkleHelpers.DebugInfo ("Config", "Created key '" + key_file_name + "'");
@@ -670,7 +697,6 @@ namespace SparkleShare {
 
 				};
 
-				process.Start();
 			}
 
 		}
@@ -796,6 +822,11 @@ namespace SparkleShare {
 			Environment.Exit (0);
 
 		}
+
+	}
+
+
+	public class ChangeSet : SparkleCommit {
 
 	}
 }

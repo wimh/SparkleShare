@@ -146,7 +146,7 @@ namespace SparkleShare {
 				Directory.CreateDirectory (SparklePaths.SparklePath);
 				SparkleHelpers.DebugInfo ("Controller", "Created '" + SparklePaths.SparklePath + "'");
 
-				string icon_file_path = SparkleHelpers.CombineMore (Defines.PREFIX, "share", "icons", "hicolor",
+				string icon_file_path = SparkleHelpers.CombineMore (Defines.DATAROOTDIR, "icons", "hicolor",
 					"48x48", "apps", "folder-sparkleshare.png");
 
 				string gvfs_command_path = SparkleHelpers.CombineMore (Path.VolumeSeparatorChar.ToString (),
@@ -173,6 +173,25 @@ namespace SparkleShare {
 
 			return false;
 
+		}
+		
+		
+		public override void OpenSparkleShareFolder (string subfolder)
+		{
+
+			string open_command_path = SparkleHelpers.CombineMore (Path.VolumeSeparatorChar.ToString (),
+				"usr", "bin", "xdg-open");
+
+			if (!File.Exists (open_command_path))
+				return;
+
+			string folder = SparkleHelpers.CombineMore (SparklePaths.SparklePath, subfolder);
+
+			Process process = new Process ();
+			process.StartInfo.Arguments = folder.Replace (" ", "\\ "); // Escape space-characters
+			process.StartInfo.FileName  = "xdg-open";
+			process.Start ();
+			
 		}
 
 		public override void OpenSparkleShareFolder (string subfolder)
