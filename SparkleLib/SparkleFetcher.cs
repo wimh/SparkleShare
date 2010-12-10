@@ -71,8 +71,6 @@ namespace SparkleLib {
 
 			process.ErrorDataReceived += delegate (object o, DataReceivedEventArgs args) {
 				Console.WriteLine ("stderr>" + args.Data);
-				Progress.Speed = "";
-				Progress.Fraction = 0;
 			};
 
 			process.OutputDataReceived += delegate (object o, DataReceivedEventArgs args) {
