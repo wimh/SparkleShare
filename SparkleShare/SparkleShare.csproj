@@ -47,6 +47,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="Mono.Posix" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
@@ -66,7 +67,6 @@
     <Compile Include="SparkleWinController.cs" />
     <Compile Include="SparkleWindow.cs" />
     <Compile Include="SparkleEntry.cs" />
-    <Compile Include="SparkleInvitation.cs" />
     <Compile Include="SparkleLink.cs" />
     <Compile Include="SparkleLog.cs" />
     <Compile Include="SparkleUIHelpers.cs" />
@@ -102,4 +102,7 @@
     </MonoDevelop>
     <VisualStudio />
   </ProjectExtensions>
+  <ItemGroup>
+    <None Include="SparkleShare.exe.config" />
+  </ItemGroup>
 </Project>
