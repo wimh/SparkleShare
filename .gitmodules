@@ -10,3 +10,6 @@
 [submodule "MacCore"]
 	path = MacCore
 	url = https://github.com/mono/maccore.git	
+[submodule "Ninject"]
+	path = Ninject
+	url = https://github.com/ninject/ninject.git
