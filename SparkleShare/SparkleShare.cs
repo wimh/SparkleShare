@@ -24,7 +24,6 @@ using System.Runtime.InteropServices;
 using SparkleLib;
 using SparkleLib.Options;
 using System.Text;
-using System.Configuration;
 
 namespace SparkleShare {
 
@@ -46,7 +45,7 @@ namespace SparkleShare {
 		{
 	
 			// Use translations
-			Catalog.Init (Defines.GETTEXT_PACKAGE, ConfigurationManager.AppSettings["LOCALE_DIR"]);
+			Catalog.Init (Defines.GETTEXT_PACKAGE, Defines.LOCALE_DIR);
 
 			if (!SparklePlatform.IsWindows) {
 

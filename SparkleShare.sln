@@ -42,8 +42,8 @@ Global
 		{7311850F-619A-4241-B09F-157792C75FBA} = {E3C59A13-2E21-4547-856C-BFD295C9E156}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = SparkleShare\SparkleShare.csproj
 		outputpath = bin
-		StartupItem = SparkleLib\SparkleLib.csproj
 		name = SparkleShare
 	EndGlobalSection
 EndGlobal

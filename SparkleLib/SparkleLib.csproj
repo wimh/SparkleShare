@@ -9,6 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>SparkleLib</RootNamespace>
     <AssemblyName>SparkleLib</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -67,9 +68,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\bin\Meebey.SmartIrc4net.dll</HintPath>
     </Reference>
-    <Reference Include="System.Configuration">
-      <SpecificVersion>False</SpecificVersion>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="SparkleRepo.cs" />
@@ -86,7 +84,7 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>
-      <Properties InternalTargetFrameworkVersion="3.5">
+      <Properties>
         <MonoDevelop.Autotools.MakefileInfo IntegrationEnabled="true" RelativeMakefileName="Makefile.am">
           <BuildFilesVar Sync="true" Name="SOURCES" />
           <DeployFilesVar />

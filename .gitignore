@@ -38,7 +38,7 @@ SparkleShare/sparkleshare
 po/sparkleshare.pot
 SparkleShare/Nautilus/sparkleshare-nautilus-extension.py
 gnome-doc-utils.make
-SparkleShare/SparkleShare.exe.config
+
 *.suo
 /NotifySharp/obj
 /SparkleLib/obj
