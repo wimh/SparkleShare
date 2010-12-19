@@ -19,6 +19,7 @@ using Mono.Unix;
 using System;
 using System.IO;
 using System.Timers;
+using SparkleLib;
 
 namespace SparkleShare {
 
@@ -26,6 +27,11 @@ namespace SparkleShare {
 	// user's notification area
 	public class SparkleStatusIcon : StatusIcon	{
 
+		private readonly SparkleUIHelpers SparkleUIHelpers;
+		private readonly IFactory<SparkleIntro> SparkleIntroFactory;
+		private readonly IFactory<SparkleDialog> SparkleDialogFactory;
+		private readonly IFactory<SparkleLog, string> SparkleLogFactory;
+		
 		private Timer Animation;
 		private Gdk.Pixbuf [] AnimationFrames;
 		private int FrameNumber;
@@ -33,14 +39,19 @@ namespace SparkleShare {
 		private Menu Menu;
 
 		// Short alias for the translations
-		public static string _ (string s)
+		public string _ (string s)
 		{
 			return Catalog.GetString (s);
 		}
 
 
-		public SparkleStatusIcon () : base ()
+		public SparkleStatusIcon (SparkleUIHelpers SparkleUIHelpers, IFactory<SparkleIntro> SparkleIntroFactory, IFactory<SparkleDialog> SparkleDialogFactory, IFactory<SparkleLog, string> SparkleLogFactory)
+			: base ()
 		{
+			this.SparkleUIHelpers = SparkleUIHelpers;
+			this.SparkleIntroFactory = SparkleIntroFactory;
+			this.SparkleDialogFactory = SparkleDialogFactory;
+			this.SparkleLogFactory = SparkleLogFactory;
 
 			AnimationFrames = CreateAnimationFrames ();
 			Animation = CreateAnimation ();
@@ -199,8 +210,7 @@ namespace SparkleShare {
 				sync_item.Activated += delegate {
 					Application.Invoke (delegate {
 
-						SparkleIntro intro = new SparkleIntro ();
-						intro.ShowServerForm (true);
+						SparkleIntroFactory.Get ().ShowServerForm (true);
 
 					});
 				};
@@ -226,7 +236,7 @@ namespace SparkleShare {
 
 				about_item.Activated += delegate {
 
-					SparkleDialog dialog = new SparkleDialog ();
+					SparkleDialog dialog = SparkleDialogFactory.Get ();
 					dialog.ShowAll ();
 
 				};
@@ -255,7 +265,7 @@ namespace SparkleShare {
 		private EventHandler OpenEventLogDelegate (string path)
 		{
 
-			return delegate { 
+			return delegate {
 
 				SparkleLog log = SparkleUI.OpenLogs.Find (delegate (SparkleLog l) { return l.LocalPath.Equals (path); });
 
@@ -263,7 +273,7 @@ namespace SparkleShare {
 				//that's not the case or present it to the user if it is
 				if (log == null) {
 
-					log = new SparkleLog (path);
+					log = SparkleLogFactory.Get (path);
 
 					log.Hidden += delegate {
 

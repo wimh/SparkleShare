@@ -70,6 +70,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Factory.cs" />
     <Compile Include="SparkleRepo.cs" />
     <Compile Include="SparkleFetcher.cs" />
     <Compile Include="Defines.cs" />
@@ -80,6 +81,12 @@
     <Compile Include="SparkleOptions.cs" />
     <Compile Include="SparkleCommit.cs" />
     <Compile Include="SparkleListener.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ninject\src\Ninject\Ninject.csproj">
+      <Project>{ADF369E2-6B9E-4D56-9B82-D273AE41EC2D}</Project>
+      <Name>Ninject %28Ninject\Ninject%29</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
@@ -97,4 +104,5 @@
       </Properties>
     </MonoDevelop>
     <VisualStudio />
-  </ProjectExtensions></Project>
+  </ProjectExtensions>
+</Project>

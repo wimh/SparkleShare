@@ -20,31 +20,57 @@ using System.IO;
 using Mono.Unix;
 
 namespace SparkleLib {
-	
-	public static class SparklePaths
+
+	public interface ISparklePaths
 	{
-		
-		public static string GitPath = GetGitPath ();
+		string GitPath { get; }
 
-		public static string HomePath = GetHomePath();
+		string HomePath { get; }
 
-		public static string SparklePath = Path.Combine (HomePath ,"SparkleShare");
+		string SparklePath { get; }
 
-		public static string SparkleTmpPath = Path.Combine (SparklePath, ".tmp");
+		string SparkleTmpPath { get; }
 
-		public static string SparkleConfigPath = SparkleHelpers.CombineMore (HomePath, ".config", "sparkleshare");
-		
-		public static string SparkleKeysPath = SparkleHelpers.CombineMore (HomePath, ".config", "sparkleshare");
+		string SparkleConfigPath { get; }
 
-		public static string SparkleInstallPath = SparkleHelpers.CombineMore (Defines.PREFIX, "sparkleshare");
+		string SparkleKeysPath { get; }
 
-		public static string SparkleLocalIconPath = SparkleHelpers.CombineMore (SparkleConfigPath, "icons", "hicolor");
+		string SparkleInstallPath { get; }
 
-		public static string SparkleIconPath = SparkleHelpers.CombineMore (Defines.DATAROOTDIR, "sparkleshare",
-			"icons");
+		string SparkleLocalIconPath { get; }
+
+		string SparkleIconPath { get; }
+	}
+
+	public class SparklePaths : ISparklePaths
+	{
+
+		public string GitPath { get { return GetGitPath (); } }
+
+		public string HomePath { get { return GetHomePath (); } }
+
+		public string SparklePath { get { return Path.Combine (HomePath, "SparkleShare"); } }
+
+		public string SparkleTmpPath { get { return Path.Combine (SparklePath, ".tmp"); } }
+
+		public string SparkleConfigPath { get { return SparkleHelpers.CombineMore (HomePath, ".config", "sparkleshare"); } }
+
+		public string SparkleKeysPath { get { return SparkleHelpers.CombineMore (HomePath, ".config", "sparkleshare"); } }
+
+		public string SparkleInstallPath { get { return SparkleHelpers.CombineMore (Defines.PREFIX, "sparkleshare"); } }
+
+		public string SparkleLocalIconPath { get { return SparkleHelpers.CombineMore (SparkleConfigPath, "icons", "hicolor"); } }
+
+		public string SparkleIconPath
+		{
+			get
+			{
+				return SparkleHelpers.CombineMore (Defines.DATAROOTDIR, "sparkleshare", "icons");
+			}
+		}
 
 
-		private static string GetHomePath()
+		private static string GetHomePath ()
 		{
 			if (SparklePlatform.IsWindows) {
 				return Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData);
@@ -55,28 +81,28 @@ namespace SparkleLib {
 
 			return UnixUserInfo.HomeDirectory;
 		}
-		
+
 		private static string GetGitPath ()
 		{
 
 			if (SparklePlatform.IsWindows)
 				return "git";
-		
+
 			Process process = new Process ();
-			
+
 			process.StartInfo.RedirectStandardOutput = true;
-			process.StartInfo.UseShellExecute        = false;
-			process.StartInfo.FileName               = "which";
-			process.StartInfo.Arguments              = "git";
+			process.StartInfo.UseShellExecute = false;
+			process.StartInfo.FileName = "which";
+			process.StartInfo.Arguments = "git";
 			process.Start ();
-			
+
 			string git_path = process.StandardOutput.ReadToEnd ().Trim ();
 
 			if (!string.IsNullOrEmpty (git_path))
 				return git_path;
 			else
 				return null;
-		
+
 		}
 
 	}

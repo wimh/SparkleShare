@@ -50,6 +50,7 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Data" />
     <Reference Include="System.XML" />
     <Reference Include="webkit-sharp" />
   </ItemGroup>
@@ -59,6 +60,7 @@
     <Compile Include="SparkleDialog.cs" />
     <Compile Include="SparkleIntro.cs" />
     <Compile Include="SparkleLinController.cs" />
+    <Compile Include="SparkleModule.cs" />
     <Compile Include="SparkleShare.cs" />
     <Compile Include="SparkleSpinner.cs" />
     <Compile Include="SparkleStatusIcon.cs" />
@@ -80,6 +82,10 @@
     <ProjectReference Include="..\GitSharp\GitSharp\GitSharp.csproj">
       <Project>{7311850F-619A-4241-B09F-157792C75FBA}</Project>
       <Name>GitSharp %28GitSharp\GitSharp%29</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Ninject\src\Ninject\Ninject.csproj">
+      <Project>{ADF369E2-6B9E-4D56-9B82-D273AE41EC2D}</Project>
+      <Name>Ninject %28Ninject\Ninject%29</Name>
     </ProjectReference>
     <ProjectReference Include="..\SparkleLib\SparkleLib.csproj">
       <Project>{2C914413-B31C-4362-93C7-1AE34F09112A}</Project>

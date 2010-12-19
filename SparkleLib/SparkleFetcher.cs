@@ -18,12 +18,29 @@ using System;
 using System.IO;
 using System.Diagnostics;
 using System.Timers;
+using Ninject;
+using Ninject.Parameters;
 
 namespace SparkleLib {
+
+	public class SparkleFetcherFactory : IFactory<SparkleFetcher, string, string>
+	{
+		private IKernel Kernel;
+
+		public SparkleFetcherFactory (IKernel Kernel)
+		{
+			this.Kernel = Kernel;
+		}
+
+		public SparkleFetcher Get (string url, string folder) { return Kernel.Get<SparkleFetcher> (new ConstructorArgument ("url", url), new ConstructorArgument ("folder", folder)); }
+	}
+
 
 	// A helper class that fetches and configures 
 	// a remote repository
 	public class SparkleFetcher {
+
+		private readonly ISparklePaths SparklePaths;
 
 		public delegate void CloningStartedEventHandler (object o, SparkleEventArgs args);
 		public delegate void CloningFinishedEventHandler (object o, SparkleEventArgs args);
@@ -37,9 +54,10 @@ namespace SparkleLib {
 		private string RemoteOriginUrl;
 
 
-		public SparkleFetcher (string url, string folder)
+		public SparkleFetcher (string url, string folder, ISparklePaths SparklePaths)
 		{
 
+			this.SparklePaths = SparklePaths;
 			TargetFolder = folder;
 			RemoteOriginUrl = url;
 

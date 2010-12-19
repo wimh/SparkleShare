@@ -1,4 +1,4 @@
-//   SparkleShare, an instant update workflow to Git.
+﻿//   SparkleShare, an instant update workflow to Git.
 //   Copyright (C) 2010  Hylke Bons <hylkebons@gmail.com>
 //
 //   This program is free software: you can redistribute it and/or modify
@@ -29,6 +29,8 @@ using System.Threading;
 namespace SparkleShare {
 
 	public class SparkleUI {
+
+		private readonly SparkleUIHelpers SparkleUIHelpers;
 		
 		public static SparkleStatusIcon StatusIcon;
 		public static List <SparkleLog> OpenLogs;
@@ -41,22 +43,22 @@ namespace SparkleShare {
 		}
 
 
-		public SparkleUI ()
+		public SparkleUI (SparkleUIHelpers SparkleUIHelpers, IFactory<SparkleStatusIcon> StatusIconFactory, IFactory<SparkleIntro> SparkleIntroFactory)
 		{
+			this.SparkleUIHelpers = SparkleUIHelpers;
 
 			// Initialize the application
 			Application.Init ();
 
 			// Create the statusicon
-			StatusIcon = new SparkleStatusIcon ();
-			
+			StatusIcon = StatusIconFactory.Get ();
+
 			// Keep track of which event logs are open
 			SparkleUI.OpenLogs = new List <SparkleLog> ();
 
 			if (SparkleShare.Controller.FirstRun) {
 
-				SparkleIntro intro = new SparkleIntro ();
-				intro.ShowAccountForm ();
+				SparkleIntroFactory.Get ().ShowAccountForm ();
 
 			}
 			
@@ -68,9 +70,8 @@ namespace SparkleShare {
 
 			SparkleShare.Controller.OnInvitation += delegate (string server, string folder, string token) {
 				Application.Invoke (delegate {
-					
-					SparkleIntro intro = new SparkleIntro ();
-					intro.ShowInvitationPage (server, folder, token);
+
+					SparkleIntroFactory.Get ().ShowInvitationPage (server, folder, token);
 
 				});
 			};

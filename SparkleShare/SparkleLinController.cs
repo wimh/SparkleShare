@@ -29,9 +29,14 @@ namespace SparkleShare {
 
 	public class SparkleLinController : SparkleController {
 
-		public SparkleLinController () : base ()
-		{
+		private readonly ISparklePaths SparklePaths;
 
+		public SparkleLinController (ISparklePaths SparklePaths,
+								     IFactory<SparkleRepo, string> SparkleRepoFactory,
+								     IFactory<SparkleFetcher, string, string> SparkleFetcherFactory)
+			: base (SparklePaths, SparkleRepoFactory, SparkleFetcherFactory)
+		{
+			this.SparklePaths = SparklePaths;
 		}
 
 
