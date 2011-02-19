@@ -30,16 +30,10 @@ namespace SparkleShare {
 
 	public class SparkleWinController : SparkleController {
 
-		private readonly ISparklePaths SparklePaths;
-
-		public SparkleWinController (ISparklePaths SparklePaths,
-									 IFactory<SparkleRepo, string> SparkleRepoFactory,
-									 IFactory<SparkleFetcher, string, string> SparkleFetcherFactory)
-			: base (SparklePaths, SparkleRepoFactory, SparkleFetcherFactory)
+		public SparkleWinController () : base ()
 		{
-			this.SparklePaths = SparklePaths;
 		}
-		
+
 		public override void Init()
 		{
 			// Add msysgit to path, as we cannot asume it is added to the path

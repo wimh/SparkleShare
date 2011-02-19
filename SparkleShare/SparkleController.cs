@@ -24,15 +24,10 @@ using System.Net;
 using System.Threading;
 using System.Text.RegularExpressions;
 using System.Xml;
-using Ninject.Activation;
 
 namespace SparkleShare {
 
 	public abstract class SparkleController {
-
-		private readonly ISparklePaths SparklePaths;
-		private readonly IFactory<SparkleRepo, string> SparkleRepoFactory;
-		private readonly IFactory<SparkleFetcher, string, string> SparkleFetcherFactory;
 
 		public List <SparkleRepo> Repositories;
 		public string FolderSize;
@@ -73,13 +68,8 @@ namespace SparkleShare {
 		public delegate void NotificationRaisedEventHandler (SparkleCommit commit, string repository_path);
 
 
-		public SparkleController (ISparklePaths SparklePaths, 
-		                          IFactory<SparkleRepo, string> SparkleRepoFactory,
-		                          IFactory<SparkleFetcher, string, string> SparkleFetcherFactory)
+		public SparkleController ()
 		{
-			this.SparklePaths = SparklePaths;
-			this.SparkleRepoFactory = SparkleRepoFactory;
-			this.SparkleFetcherFactory = SparkleFetcherFactory;
 		}
 
 		public virtual void Init() 
@@ -337,7 +327,7 @@ namespace SparkleShare {
 			if (!Directory.Exists (SparkleHelpers.CombineMore (folder_path, ".git")))
 				return;
 
-			SparkleRepo repo = SparkleRepoFactory.Get (folder_path);
+			SparkleRepo repo = new SparkleRepo (folder_path);
 
 			repo.NewCommit += delegate (SparkleCommit commit, string repository_path) {
 
@@ -721,7 +711,7 @@ namespace SparkleShare {
 			string canonical_name = System.IO.Path.GetFileNameWithoutExtension (name);
 			string tmp_folder = SparkleHelpers.CombineMore (SparklePaths.SparkleTmpPath, canonical_name);
 
-			SparkleFetcher fetcher = SparkleFetcherFactory.Get (url, tmp_folder);
+			SparkleFetcher fetcher = new SparkleFetcher (url, tmp_folder);
 
 
 			bool folder_exists = Directory.Exists (

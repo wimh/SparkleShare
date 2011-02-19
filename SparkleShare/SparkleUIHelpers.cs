@@ -24,17 +24,10 @@ using System.Text;
 
 namespace SparkleShare {
 	
-	public class SparkleUIHelpers {
-
-		private readonly ISparklePaths SparklePaths;
-
-		public SparkleUIHelpers (ISparklePaths SparklePaths)
-		{
-			this.SparklePaths = SparklePaths;
-		}
+	public static class SparkleUIHelpers {
 
 		// Creates an MD5 hash of input
-		public string GetMD5 (string s)
+		public static string GetMD5 (string s)
 		{
 			MD5 md5 = new MD5CryptoServiceProvider ();
 			Byte[] bytes = ASCIIEncoding.Default.GetBytes (s);
@@ -44,7 +37,7 @@ namespace SparkleShare {
 
 
 		// Gets the avatar for a specific email address and size
-		public string GetAvatar (string email, int size)
+		public static string GetAvatar (string email, int size)
 		{
 
 			string avatar_path = SparkleHelpers.CombineMore (SparklePaths.SparkleLocalIconPath,
@@ -102,7 +95,7 @@ namespace SparkleShare {
 
 
 		// Looks up an icon from the system's theme
-		public Gdk.Pixbuf GetIcon (string name, int size)
+		public static Gdk.Pixbuf GetIcon (string name, int size)
 		{
 
 			IconTheme icon_theme = new IconTheme ();
@@ -132,7 +125,7 @@ namespace SparkleShare {
 
 		// Converts a Gdk RGB color to a hex value.
 		// Example: from "rgb:0,0,0" to "#000000"
-		public string GdkColorToHex (Gdk.Color color)
+		public static string GdkColorToHex (Gdk.Color color)
 		{
 
 			return String.Format ("#{0:X2}{1:X2}{2:X2}",

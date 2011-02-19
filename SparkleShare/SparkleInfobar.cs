@@ -21,11 +21,9 @@ namespace SparkleShare {
 	// An infobar
 	public class SparkleInfobar : EventBox
 	{
-		private readonly SparkleUIHelpers SparkleUIHelpers;
 
-		public SparkleInfobar (string icon_name, string title, string text, SparkleUIHelpers SparkleUIHelpers)
+		public SparkleInfobar (string icon_name, string title, string text)
 		{
-			this.SparkleUIHelpers = SparkleUIHelpers;
 
 			Window window = new Window (WindowType.Popup) {
 				Name = "gtk-tooltip"

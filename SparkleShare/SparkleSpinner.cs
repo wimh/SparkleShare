@@ -22,7 +22,6 @@ namespace SparkleShare {
 	// This is a close implementation of GtkSpinner
 	public class SparkleSpinner : Image
 	{
-		private readonly SparkleUIHelpers SparkleUIHelpers;
 
 		public bool Active;
 
@@ -33,10 +32,9 @@ namespace SparkleShare {
 		private int NumSteps;
 		private int Size;
 
-		public SparkleSpinner (int size, SparkleUIHelpers SparkleUIHelpers)
-			: base ()
+		public SparkleSpinner (int size) : base ()
 		{
-			this.SparkleUIHelpers = SparkleUIHelpers;
+
 			Size = size;
 
 			CycleDuration = 600;

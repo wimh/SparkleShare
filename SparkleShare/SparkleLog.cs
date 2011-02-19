@@ -26,9 +26,6 @@ namespace SparkleShare {
 
 	public class SparkleLog : Window {
 
-		private readonly SparkleUIHelpers SparkleUIHelpers;
-		private readonly IFactory<SparkleInfobar, string, string, string> SparkleInfobarFactory;
-		
 		public readonly string LocalPath;
 		private VBox LayoutVertical;
 		private ScrolledWindow ScrolledWindow;
@@ -42,11 +39,8 @@ namespace SparkleShare {
 		}
 
 
-		public SparkleLog (string path, SparkleUIHelpers SparkleUIHelpers, IFactory<SparkleInfobar, string, string, string> SparkleInfobarFactory)
-			: base ("")
+		public SparkleLog (string path) : base ("")
 		{
-			this.SparkleUIHelpers = SparkleUIHelpers;
-			this.SparkleInfobarFactory = SparkleInfobarFactory;
 
 			LocalPath = path;
 			
@@ -227,7 +221,7 @@ namespace SparkleShare {
 				string title = _("This folder has unsynced changes");
 				string text  = _("We will sync these once we’re connected again");
 
-				SparkleInfobar infobar = SparkleInfobarFactory.Get ("dialog-error", title, text);
+				SparkleInfobar infobar = new SparkleInfobar ("dialog-error", title, text);
 
 				layout_vertical.PackStart (infobar, false, false, 0);
 
@@ -241,7 +235,7 @@ namespace SparkleShare {
 						string title = _("Could not sync with the remote folder");
 						string text  = _("Is the you and the server online?");
 
-						SparkleInfobar infobar = SparkleInfobarFactory.Get ("dialog-error", title, text);
+						SparkleInfobar infobar = new SparkleInfobar ("dialog-error", title, text);
 
 						layout_vertical.PackStart (infobar, false, false, 0);
 

@@ -24,7 +24,6 @@ using System.Runtime.InteropServices;
 using SparkleLib;
 using SparkleLib.Options;
 using System.Text;
-using Ninject;
 
 namespace SparkleShare {
 
@@ -44,7 +43,6 @@ namespace SparkleShare {
 
 		public static void Main (string [] args)
 		{
-			IKernel kernel = new StandardKernel (new SparkleModule ());
 	
 			// Use translations
 			Catalog.Init (Defines.GETTEXT_PACKAGE, Defines.LOCALE_DIR);
@@ -86,10 +84,8 @@ namespace SparkleShare {
 			if (show_help)
 				ShowHelp (p);
 
-
-			Controller = kernel.Get<SparkleController> ();
-
-			/*switch (Environment.OSVersion.Platform) {
+			
+			switch (Environment.OSVersion.Platform) {
 
 				case PlatformID.Unix:
 					SetProcessName ("sparkleshare");
@@ -104,7 +100,7 @@ namespace SparkleShare {
 					Controller = new SparkleWinController ();
 				break;
 
-			}*/
+			}
 
 			if (Controller != null)
 				Controller.Init();
@@ -113,7 +109,7 @@ namespace SparkleShare {
 			
 			if (!hide_ui) {
 
-				UI = kernel.Get<SparkleUI> ();
+				UI = new SparkleUI ();
 				UI.Run ();
 
 			}

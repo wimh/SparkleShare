@@ -20,13 +20,10 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
-using SparkleLib;
 
 namespace SparkleShare {
 
 	public class SparkleIntro : SparkleWindow {
-		private readonly SparkleUIHelpers SparkleUIHelpers;
-		private readonly IFactory<SparkleSpinner, int> SparkleSpinnerFactory;
 
 		private Entry NameEntry;
 		private Entry EmailEntry;
@@ -45,11 +42,8 @@ namespace SparkleShare {
 		}
 
 
-		public SparkleIntro (SparkleUIHelpers SparkleUIHelpers, IFactory<SparkleSpinner, int> SparkleSpinnerFactory)
-			: base ()
+		public SparkleIntro () : base ()
 		{
-			this.SparkleUIHelpers = SparkleUIHelpers;
-			this.SparkleSpinnerFactory = SparkleSpinnerFactory;
 
 			ServerFormOnly = false;
 			SecondaryTextColor = SparkleUIHelpers.GdkColorToHex (Style.Foreground (StateType.Insensitive));
@@ -664,7 +658,7 @@ namespace SparkleShare {
 
 					AddButton (button);
 
-					SparkleSpinner spinner = SparkleSpinnerFactory.Get(22);
+					SparkleSpinner spinner = new SparkleSpinner (22);
 
 				Table table = new Table (3, 2, false) {
 					RowSpacing    = 12,

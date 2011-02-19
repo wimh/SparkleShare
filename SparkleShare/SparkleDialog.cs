@@ -23,8 +23,6 @@ namespace SparkleShare {
 
 	public class SparkleDialog : Window	{
 
-		private readonly SparkleUIHelpers SparkleUIHelpers;
-
 		// Short alias for the translations
 		public static string _(string s)
 		{
@@ -32,10 +30,8 @@ namespace SparkleShare {
 		}
 
 
-		public SparkleDialog (SparkleUIHelpers SparkleUIHelpers)
-			: base ("")
+		public SparkleDialog () : base ("")
 		{
-			this.SparkleUIHelpers = SparkleUIHelpers;
 
 			BorderWidth    = 0;
 			IconName       = "folder-sparkleshare";

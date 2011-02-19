@@ -25,26 +25,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Timers;
-using Ninject;
-using Ninject.Parameters;
 
 namespace SparkleLib {
 
-	public class SparkleRepoFactory : IFactory<SparkleRepo, string /*path*/>
-	{
-		private IKernel Kernel;
-
-		public SparkleRepoFactory (IKernel Kernel)
-		{
-			this.Kernel = Kernel;
-		}
-
-		public SparkleRepo Get (string path) { return Kernel.Get<SparkleRepo> (new ConstructorArgument ("path", path)); }
-	}
-
 	public class SparkleRepo : Repository {
-
-		private readonly ISparklePaths SparklePaths;
 
 		private Process Process;
 		private Timer RemoteTimer;
@@ -264,10 +248,8 @@ namespace SparkleLib {
 		public event CommitEndedUpEmptyEventHandler CommitEndedUpEmpty;
 
 
-		public SparkleRepo (string path, ISparklePaths SparklePaths) : base (path)
+		public SparkleRepo (string path) : base (path)
 		{
-
-			this.SparklePaths=SparklePaths;
 
 			LocalPath = path;
 			Name = Path.GetFileName (LocalPath);
