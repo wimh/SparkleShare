@@ -46,6 +46,7 @@ namespace SparkleShare {
         private NSMenuItem AboutMenuItem;
         private NSMenuItem NotificationsMenuItem;
         private NSMenuItem RecentEventsMenuItem;
+        private NSMenuItem QuitMenuItem;
         private NSImage [] AnimationFrames;
         private NSImage [] AnimationFramesActive;
         private NSImage ErrorImage;
@@ -69,8 +70,8 @@ namespace SparkleShare {
         {
             using (var a = new NSAutoreleasePool ())
             {
-                ErrorImage        = new NSImage (NSBundle.MainBundle.ResourcePath + "/Pixmaps/error.png");
-                ErrorImageActive  = new NSImage (NSBundle.MainBundle.ResourcePath + "/Pixmaps/error-active.png");
+                ErrorImage        = new NSImage (NSBundle.MainBundle.ResourcePath + "/Pixmaps/sparkleshare-syncing-error-mac.png");
+                ErrorImageActive  = new NSImage (NSBundle.MainBundle.ResourcePath + "/Pixmaps/sparkleshare-syncing-error-mac-active.png");
                 FolderImage       = NSImage.ImageNamed ("NSFolder");
                 CautionImage      = NSImage.ImageNamed ("NSCaution");
                 SparkleShareImage = NSImage.ImageNamed ("sparkleshare-mac");
@@ -83,7 +84,7 @@ namespace SparkleShare {
                 if (Controller.Folders.Length == 0)
                     StateText = _("Welcome to SparkleShare!");
                 else
-                    StateText = _("Up to date") + " — " + Controller.FolderSize;
+                    StateText = _("Up to date") + Controller.FolderSize;
 
                 CreateMenu ();
     
@@ -101,7 +102,7 @@ namespace SparkleShare {
                             if (Controller.Folders.Length == 0)
                                 StateText = _("Welcome to SparkleShare!");
                             else
-                                StateText = _("Up to date") + " — " + Controller.FolderSize;
+                                StateText = _("Up to date") + Controller.FolderSize;
     
                             StateMenuItem.Title = StateText;
                             CreateMenu ();
@@ -110,7 +111,10 @@ namespace SparkleShare {
     
                         case IconState.Syncing:
     
-                            StateText = _("Syncing…");
+                            StateText = _("Syncing… ") +
+                                        Controller.ProgressPercentage + "%  " +
+                                        Controller.ProgressSpeed;
+
                             StateMenuItem.Title = StateText;
     
                             if (!Animation.Enabled)
@@ -119,6 +123,8 @@ namespace SparkleShare {
                             break;
     
                         case IconState.Error:
+
+                            Animation.Stop ();
     
                             StateText = _("Not everything is synced");
                             StateMenuItem.Title = StateText;
@@ -240,7 +246,7 @@ namespace SparkleShare {
     
                     RecentEventsMenuItem = new NSMenuItem () {
                         Title = "Open Recent Events",
-                        Enabled = true
+                        Enabled = (Controller.Folders.Length > 0)
                     };
     
                     if (Controller.Folders.Length > 0) {
@@ -298,10 +304,22 @@ namespace SparkleShare {
 
                         });
                     };
+				
+				Menu.AddItem (AboutMenuItem);
+			    Menu.AddItem (NSMenuItem.SeparatorItem);
+
+				
+                QuitMenuItem = new NSMenuItem () {
+                    Title = "Quit",
+                    Enabled = true
+                };
     
-    
-                Menu.AddItem (AboutMenuItem);
-    
+                    QuitMenuItem.Activated += delegate {
+                        Program.Controller.Quit ();
+                    };
+
+                Menu.AddItem (QuitMenuItem);
+
                 StatusItem.Menu = Menu;
                 StatusItem.Menu.Update ();
             }
@@ -324,19 +342,19 @@ namespace SparkleShare {
             FrameNumber = 0;
 
             AnimationFrames = new NSImage [] {
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle0.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle1.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle2.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle3.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle4.png"))
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-i.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-ii.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-iii.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-iiii.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-iiiii.png"))
             };
 
             AnimationFramesActive = new NSImage [] {
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle0-active.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle1-active.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle2-active.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle3-active.png")),
-                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "idle4-active.png"))
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-i-active.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-ii-active.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-iii-active.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-iiii-active.png")),
+                new NSImage (Path.Combine (NSBundle.MainBundle.ResourcePath, "Pixmaps", "process-syncing-sparkleshare-mac-iiiii-active.png"))
             };
 
             Timer Animation = new Timer () {

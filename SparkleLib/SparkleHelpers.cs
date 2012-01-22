@@ -22,20 +22,25 @@ namespace SparkleLib {
     
     public static class SparkleHelpers {
 
-        public static bool ShowDebugInfo = true;
-
+        private static object debug_lock = new object ();
 
         // Show debug info if needed
         public static void DebugInfo (string type, string message)
         {
-            if (ShowDebugInfo) {
-                string timestamp = DateTime.Now.ToString ("HH:mm:ss");
+            if (!message.StartsWith ("["))
+                message = " " + message;
 
-                if (!message.StartsWith ("["))
-                    message = " " + message;
+            string timestamp = DateTime.Now.ToString ("HH:mm:ss");
+            string line      = timestamp + " " + "[" + type + "]" + message;
 
-                // TODO: Write to a log
-                Console.WriteLine (timestamp + " " + "[" + type + "]" + message);
+            if (SparkleConfig.DebugMode)
+                Console.WriteLine (line);
+
+            lock (debug_lock) {
+                File.AppendAllText (
+                    SparkleConfig.DefaultConfig.LogFilePath,
+                    line + Environment.NewLine
+                );
             }
         }
 
@@ -92,6 +97,29 @@ namespace SparkleLib {
         public static string DiffPaths (string target, string source)
         {
             return target.Replace (source + Path.DirectorySeparatorChar, "");      
+        }
+
+        public static bool IsWindows
+        {
+            get
+            {
+                PlatformID platform = Environment.OSVersion.Platform;
+                return (platform == PlatformID.Win32NT
+                    || platform == PlatformID.Win32S
+                    || platform == PlatformID.Win32Windows);
+            }
+        }
+
+        public static string NormalizeSeparatorsToOS(string path)
+        {
+            if (IsWindows)
+            {
+                return path.Replace('\\', '/');
+            }
+            else
+            {
+                return path;
+            }
         }
     }
 }

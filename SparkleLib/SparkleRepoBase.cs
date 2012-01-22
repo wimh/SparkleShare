@@ -44,11 +44,13 @@ namespace SparkleLib {
         private TimeSpan poll_interval;
         private System.Timers.Timer local_timer  = new System.Timers.Timer () { Interval = 0.25 * 1000 };
         private System.Timers.Timer remote_timer = new System.Timers.Timer () { Interval = 10 * 1000 };
-        private DateTime last_poll       = DateTime.Now;
-        private List<double> sizebuffer  = new List<double> ();
-        private bool has_changed         = false;
-        private Object change_lock       = new Object ();
-        private Object watch_lock        = new Object ();
+        private DateTime last_poll         = DateTime.Now;
+        private List<double> sizebuffer    = new List<double> ();
+        private bool has_changed           = false;
+        private Object change_lock         = new Object ();
+        private Object watch_lock          = new Object ();
+        private double progress_percentage = 0.0;
+        private string progress_speed      = "";
 
         protected SparkleListenerBase listener;
         protected SyncStatus status;
@@ -64,19 +66,23 @@ namespace SparkleLib {
         public abstract string CurrentRevision { get; }
         public abstract bool SyncUp ();
         public abstract bool SyncDown ();
+        public abstract double CalculateSize (DirectoryInfo parent);
         public abstract bool HasUnsyncedChanges { get; set; }
+        public abstract List<string> ExcludePaths { get; }
 
-        public abstract bool AddExclusionRule (FileSystemEventArgs args);
-        public abstract bool RemoveExclusionRule (FileSystemEventArgs args);
-        public abstract bool ExclusionRuleExists (FileSystemEventArgs args);
-		
+        public abstract double Size { get; }
+        public abstract double HistorySize { get; }
+
         public delegate void SyncStatusChangedEventHandler (SyncStatus new_status);
         public event SyncStatusChangedEventHandler SyncStatusChanged;
+
+        public delegate void SyncProgressChangedEventHandler (double percentage, string speed);
+        public event SyncProgressChangedEventHandler SyncProgressChanged;
 
         public delegate void NewChangeSetEventHandler (SparkleChangeSet change_set);
         public event NewChangeSetEventHandler NewChangeSet;
 
-        public delegate void NewNoteEventHandler (string user_name, string user_email);
+        public delegate void NewNoteEventHandler (SparkleUser user);
         public event NewNoteEventHandler NewNote;
 
         public delegate void ConflictResolvedEventHandler ();
@@ -108,8 +114,6 @@ namespace SparkleLib {
             };
 
             this.remote_timer.Elapsed += delegate {
-                string identifier = Identifier;
-
                 bool time_to_poll = (DateTime.Compare (this.last_poll,
                     DateTime.Now.Subtract (this.poll_interval)) < 0);
 
@@ -122,10 +126,16 @@ namespace SparkleLib {
 
                 // In the unlikely case that we haven't synced up our
                 // changes or the server was down, sync up again
-                if (HasUnsyncedChanges)
+                if (HasUnsyncedChanges && !IsSyncing && this.server_online)
                     SyncUpBase ();
             };
 
+
+        }
+
+
+        public void Initialize ()
+        {
             // Sync up everything that changed
             // since we've been offline
             if (AnyDifferences) {
@@ -153,6 +163,20 @@ namespace SparkleLib {
         public SyncStatus Status {
             get {
                 return this.status;
+            }
+        }
+
+
+        public double ProgressPercentage {
+            get {
+                return this.progress_percentage;
+            }
+        }
+
+
+        public string ProgressSpeed {
+            get {
+                return this.progress_speed;
             }
         }
 
@@ -186,7 +210,7 @@ namespace SparkleLib {
         }
 
 
-        public virtual bool CheckForRemoteChanges () // HasRemoteChanges { get; } ?
+        public virtual bool CheckForRemoteChanges () // TODO: HasRemoteChanges { get; }
         {
             return true;
         }
@@ -223,11 +247,8 @@ namespace SparkleLib {
         public void Dispose ()
         {
             this.remote_timer.Dispose ();
-            this.remote_timer = null;
             this.local_timer.Dispose ();
-            this.local_timer = null;
             this.listener.Dispose ();
-            this.listener = null;
         }
 
 
@@ -301,7 +322,7 @@ namespace SparkleLib {
         }
 
 
-        private bool IsSyncing {
+        public bool IsSyncing {
             get {
                 return (Status == SyncStatus.SyncUp   ||
                         Status == SyncStatus.SyncDown ||
@@ -318,7 +339,7 @@ namespace SparkleLib {
                         this.sizebuffer.RemoveAt (0);
 
                     DirectoryInfo dir_info = new DirectoryInfo (LocalPath);
-                     this.sizebuffer.Add (CalculateFolderSize (dir_info));
+                     this.sizebuffer.Add (CalculateSize (dir_info));
 
                     if (this.sizebuffer.Count >= 4 &&
                         this.sizebuffer [0].Equals (this.sizebuffer [1]) &&
@@ -347,42 +368,13 @@ namespace SparkleLib {
             if (!this.watcher.EnableRaisingEvents)
                 return;
 
-            if (args.FullPath.Contains (Path.DirectorySeparatorChar + ".") &&
-                !args.FullPath.Contains (Path.DirectorySeparatorChar + ".notes"))
-                return;
+            string relative_path = args.FullPath.Replace (LocalPath, "");
 
-            /*
-            * Check whether the file which triggered the action
-            * is readable so that git can actually commit it
-            */
-            try {
-                if(File.Exists(args.FullPath)) {
-                    FileStream file = File.OpenRead(args.FullPath);
-                    file.Close();
-                }
-            } catch {
-                if(!ExclusionRuleExists(args)) {
-                    SparkleHelpers.DebugInfo("Warning", "File " + args.FullPath + " is not readable. Adding to ignore list.");
-                    AddExclusionRule(args);
-                }
-
-                return;
-            }
-
-            /*
-             * Remove rule if file is readable but there is still
-             * an exclusion rule set
-             */
-            if(ExclusionRuleExists(args)) {
-                SparkleHelpers.DebugInfo("Info", "Removing exclusion rule for " + args.Name);
-                RemoveExclusionRule(args);
-
-                // If a file was former unreadable but has now been (re)moved, skip the process.
-                if(!File.Exists(args.FullPath)) {
+            foreach (string exclude_path in ExcludePaths) {
+                if (relative_path.Contains (exclude_path))
                     return;
-                }
             }
-            
+
             WatcherChangeTypes wct = args.ChangeType;
 
             if (AnyDifferences) {
@@ -402,8 +394,7 @@ namespace SparkleLib {
                 SparkleHelpers.DebugInfo ("Event", "[" + Name + "] " + wct.ToString () + " '" + args.Name + "'");
                 SparkleHelpers.DebugInfo ("Event", "[" + Name + "] Changes found, checking if settled.");
 
-                if (this.remote_timer != null)
-                    this.remote_timer.Stop ();
+                this.remote_timer.Stop ();
 
                 lock (this.change_lock) {
                     this.has_changed = true;
@@ -452,8 +443,7 @@ namespace SparkleLib {
         {
             try {
                 DisableWatching ();
-                if (this.remote_timer != null)
-                    this.remote_timer.Stop ();
+                this.remote_timer.Stop ();
 
                 SparkleHelpers.DebugInfo ("SyncUp", "[" + Name + "] Initiated");
 
@@ -468,34 +458,37 @@ namespace SparkleLib {
                     if (SyncStatusChanged != null)
                         SyncStatusChanged (SyncStatus.Idle);
 
-                    if (this.listener != null)
-                        this.listener.AnnounceBase (new SparkleAnnouncement(Identifier, CurrentRevision));
+                    this.listener.AnnounceBase (new SparkleAnnouncement (Identifier, CurrentRevision));
 
                 } else {
                     SparkleHelpers.DebugInfo ("SyncUp", "[" + Name + "] Error");
 
                     HasUnsyncedChanges = true;
                     SyncDownBase ();
+                    DisableWatching ();
 
-                    if (SyncUp ()) {
+                    if (this.server_online && SyncUp ()) {
                         HasUnsyncedChanges = false;
 
                         if (SyncStatusChanged != null)
                             SyncStatusChanged (SyncStatus.Idle);
 
-                        if (this.listener != null)
-                            this.listener.AnnounceBase (new SparkleAnnouncement (Identifier, CurrentRevision));
+                        this.listener.AnnounceBase (new SparkleAnnouncement (Identifier, CurrentRevision));
 
                     } else {
+                        this.server_online = false;
+
                         if (SyncStatusChanged != null)
                             SyncStatusChanged (SyncStatus.Error);
                     }
                 }
 
             } finally {
-                if (this.remote_timer != null)
-                    this.remote_timer.Start ();
+                this.remote_timer.Start ();
                 EnableWatching ();
+
+                this.progress_percentage = 0.0;
+                this.progress_speed      = "";
             }
         }
 
@@ -503,8 +496,7 @@ namespace SparkleLib {
         private void SyncDownBase ()
         {
             SparkleHelpers.DebugInfo ("SyncDown", "[" + Name + "] Initiated");
-            if (this.remote_timer != null)
-                this.remote_timer.Stop ();
+            this.remote_timer.Stop ();
             DisableWatching ();
 
             if (SyncStatusChanged != null)
@@ -529,7 +521,7 @@ namespace SparkleLib {
                         foreach (string added in change_set.Added) {
                             if (added.Contains (".notes")) {
                                 if (NewNote != null)
-                                    NewNote (change_set.User.Name, change_set.User.Email);
+                                    NewNote (change_set.User);
 
                                 note_added = true;
                                 break;
@@ -560,28 +552,28 @@ namespace SparkleLib {
             if (SyncStatusChanged != null)
                 SyncStatusChanged (SyncStatus.Idle);
 
-            if (this.remote_timer != null)
-                this.remote_timer.Start ();
+            this.remote_timer.Start ();
             EnableWatching ();
+
+            this.progress_percentage = 0.0;
+            this.progress_speed      = "";
         }
 
 
         public void DisableWatching ()
         {
-            lock (watch_lock) {
+            lock (this.watch_lock) {
                 this.watcher.EnableRaisingEvents = false;
-                if (this.local_timer != null)
-                    this.local_timer.Stop ();
+                this.local_timer.Stop ();
             }
         }
 
 
         public void EnableWatching ()
         {
-            lock (watch_lock) {
+            lock (this.watch_lock) {
                 this.watcher.EnableRaisingEvents = true;
-                if (this.local_timer != null)
-                    this.local_timer.Start ();
+                this.local_timer.Start ();
             }
         }
 
@@ -592,7 +584,20 @@ namespace SparkleLib {
         {
             string file_path = Path.Combine (LocalPath, "SparkleShare.txt");
             TextWriter writer = new StreamWriter (file_path);
-            writer.WriteLine (":)");
+            writer.WriteLine ("Congratulations, you've successfully created a SparkleShare repository!");
+            writer.WriteLine ("");
+            writer.WriteLine ("Any files you add or change in this folder will be automatically synced to ");
+            writer.WriteLine (SparkleConfig.DefaultConfig.GetUrlForFolder (Name) + " and everyone connected to it.");
+            // TODO: Url property? ^
+
+            writer.WriteLine ("");
+            writer.WriteLine ("SparkleShare is a Free and Open Source software program that helps people ");
+            writer.WriteLine ("collaborate and share files. If you like what we do, please consider a small ");
+            writer.WriteLine ("donation to support the project: http://sparkleshare.org/support-us/");
+            writer.WriteLine ("");
+            writer.WriteLine ("Have fun! :)");
+            writer.WriteLine ("");
+
             writer.Close ();
         }
 
@@ -635,30 +640,25 @@ namespace SparkleLib {
         }
 
 
-        // Recursively gets a folder's size in bytes
-        private double CalculateFolderSize (DirectoryInfo parent)
+        private DateTime progress_last_change     = DateTime.Now;
+        private TimeSpan progress_change_interval = new TimeSpan (0, 0, 0, 1);
+
+        protected void OnSyncProgressChanged (double progress_percentage, string progress_speed)
         {
-            if (!System.IO.Directory.Exists (parent.ToString ()))
-                return 0;
+            if (DateTime.Compare (this.progress_last_change,
+                    DateTime.Now.Subtract (this.progress_change_interval)) < 0) {
 
-            double size = 0;
+                if (SyncProgressChanged != null) {
+                    if (progress_percentage == 100.0)
+                        progress_percentage = 99.0;
 
-            // Ignore the temporary 'rebase-apply' directory. This prevents potential
-            // crashes when files are being queried whilst the files have already been deleted.
-            if (parent.Name.Equals ("rebase-apply"))
-                return 0;
+                    this.progress_percentage  = progress_percentage;
+                    this.progress_speed       = progress_speed;
+                    this.progress_last_change = DateTime.Now;
 
-            foreach (FileInfo file in parent.GetFiles ()) {
-                if (!file.Exists)
-                    return 0;
-
-                size += file.Length;
+                    SyncProgressChanged (progress_percentage, progress_speed);
+                }
             }
-
-            foreach (DirectoryInfo directory in parent.GetDirectories())
-                size += CalculateFolderSize (directory);
-
-            return size;
         }
 
 

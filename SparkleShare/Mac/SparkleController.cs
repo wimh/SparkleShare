@@ -41,6 +41,26 @@ namespace SparkleShare {
         
         public SparkleController () : base ()
         {
+            string content_path =
+                Directory.GetParent (System.AppDomain.CurrentDomain.BaseDirectory).ToString ();
+
+            string app_path     = Directory.GetParent (content_path).ToString ();
+            string growl_path   = Path.Combine (app_path, "Frameworks", "Growl.framework", "Growl");
+
+
+            // Needed for Growl
+            Dlfcn.dlopen (growl_path, 0);
+            NSApplication.Init ();
+
+
+            // Let's use the bundled git first
+            SparkleBackend.DefaultBackend.Path =
+                Path.Combine (NSBundle.MainBundle.ResourcePath,
+                    "git", "libexec", "git-core", "git");
+
+            SparkleGit.ExecPath =
+                Path.Combine (NSBundle.MainBundle.ResourcePath,
+                    "git", "libexec", "git-core");
         }
 
 
@@ -146,13 +166,13 @@ namespace SparkleShare {
 			get {
 				string resource_path = NSBundle.MainBundle.ResourcePath;
 				string html_path     = Path.Combine (resource_path, "HTML", "event-log.html");
-				
-				StreamReader reader = new StreamReader (html_path);
-				string html = reader.ReadToEnd ();
-				reader.Close ();
+				string html          = File.ReadAllText (html_path);
 
-                html = html.Replace ("<!-- $jquery-url -->", "file://" +
-                    Path.Combine (NSBundle.MainBundle.ResourcePath, "HTML", "jquery.js"));
+                string jquery_file_path = Path.Combine (NSBundle.MainBundle.ResourcePath,
+                    "HTML", "jquery.js");
+
+                string jquery = File.ReadAllText (jquery_file_path);
+                html          = html.Replace ("<!-- $jquery -->", jquery);
 
                 return html;
 			}
@@ -189,11 +209,10 @@ namespace SparkleShare {
 		}
 
 
-        new public void Quit ()
+        public override void OpenFile (string url)
         {
-            this.watcher.Dispose ();
-            NSApplication.SharedApplication.Terminate (new NSObject ());
-            base.Quit ();
+            url = url.Replace ("%20", " ");
+            NSWorkspace.SharedWorkspace.OpenFile (url);
         }
 	}
 }

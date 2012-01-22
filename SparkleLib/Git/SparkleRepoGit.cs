@@ -26,15 +26,8 @@ namespace SparkleLib {
 
     public class SparkleRepoGit : SparkleRepoBase {
 
-        private string exlude_rules_file_path;
-        private string ExclusionBlock = "#Temporary Exclusions";
-
         public SparkleRepoGit (string path, SparkleBackend backend) :
-            base (path, backend) {
-            // Set exclude file path
-            exlude_rules_file_path = SparkleHelpers.CombineMore (
-                 LocalPath, ".git", "info", "exclude");
-        }
+            base (path, backend) { }
 
 
         private string identifier = null;
@@ -63,6 +56,60 @@ namespace SparkleLib {
 
                 return this.identifier;
             }
+        }
+
+
+        public override List<string> ExcludePaths {
+            get {
+                List<string> rules = new List<string> ();
+                rules.Add (Path.DirectorySeparatorChar + ".git");
+
+                return rules;
+            }
+        }
+
+
+        public override double Size {
+            get {
+                string file_path = SparkleHelpers.CombineMore (LocalPath, ".git", "repo_size");
+
+                try {
+                    return double.Parse (File.ReadAllText (file_path));
+
+                } catch {
+                    return 0;
+                }
+            }
+        }
+
+
+        public override double HistorySize {
+            get {
+                string file_path = SparkleHelpers.CombineMore(LocalPath, ".git", "repo_history_size");
+
+                try {
+                    return double.Parse (File.ReadAllText (file_path));
+
+                } catch {
+                    return 0;
+                }
+            }
+        }
+
+
+        private void CalculateSizes ()
+        {
+            double size = CalculateSize (
+                new DirectoryInfo (LocalPath));
+
+            double history_size = CalculateSize (
+                new DirectoryInfo (Path.Combine (LocalPath, ".git")));
+
+            string size_file_path = SparkleHelpers.CombineMore(LocalPath, ".git", "repo_size");
+            string history_size_file_path = SparkleHelpers.CombineMore(LocalPath, ".git", "repo_history_size");
+
+            File.WriteAllText (size_file_path, size.ToString ());
+            File.WriteAllText (history_size_file_path, history_size.ToString ());
         }
 
 
@@ -144,15 +191,63 @@ namespace SparkleLib {
 
         public override bool SyncUp ()
         {
-            Add ();
+            if (AnyDifferences) {
+                Add ();
 
-            string message = FormatCommitMessage ();
-            Commit (message);
+                string message = FormatCommitMessage ();
+                Commit (message);
+            }
 
-            SparkleGit git = new SparkleGit (LocalPath, "push origin master");
+
+            SparkleGit git = new SparkleGit (LocalPath,
+                "push --progress " + // Redirects progress stats to standarderror
+                "origin master");
+
+            git.StartInfo.RedirectStandardError = true;
             git.Start ();
-            git.StandardOutput.ReadToEnd ();
+
+            double percentage = 1.0;
+            Regex progress_regex = new Regex (@"([0-9]+)%", RegexOptions.Compiled);
+
+            while (!git.StandardError.EndOfStream) {
+                string line   = git.StandardError.ReadLine ();
+                Match match   = progress_regex.Match (line);
+                string speed  = "";
+                double number = 0.0;
+
+                if (match.Success) {
+                    number = double.Parse (match.Groups [1].Value);
+
+                    // The pushing progress consists of two stages: the "Compressing
+                    // objects" stage which we count as 20% of the total progress, and
+                    // the "Writing objects" stage which we count as the last 80%
+                    if (line.StartsWith ("Compressing")) {
+                        // "Compressing objects" stage
+                        number = (number / 100 * 20);
+
+                    } else {
+                        // "Writing objects" stage
+                        number = (number / 100 * 80 + 20);
+
+                        if (line.Contains ("|")) {
+                            speed = line.Substring (line.IndexOf ("|") + 1).Trim ();
+                            speed = speed.Replace (", done.", "").Trim ();
+                            speed = speed.Replace ("i", "");
+                            speed = speed.Replace ("KB/s", "ᴋʙ/s");
+                            speed = speed.Replace ("MB/s", "ᴍʙ/s");
+                        }
+                    }
+                }
+
+                if (number >= percentage) {
+                    percentage = number;
+                    base.OnSyncProgressChanged (percentage, speed);
+                }
+            }
+
             git.WaitForExit ();
+
+            CalculateSizes ();
 
             if (git.ExitCode == 0)
                 return true;
@@ -163,9 +258,53 @@ namespace SparkleLib {
 
         public override bool SyncDown ()
         {
-            SparkleGit git = new SparkleGit (LocalPath, "fetch -v");
+            SparkleGit git = new SparkleGit (LocalPath, "fetch --progress");
+
+            git.StartInfo.RedirectStandardError = true;
             git.Start ();
+
+            double percentage = 1.0;
+            Regex progress_regex = new Regex (@"([0-9]+)%", RegexOptions.Compiled);
+
+            while (!git.StandardError.EndOfStream) {
+                string line   = git.StandardError.ReadLine ();
+                Match match   = progress_regex.Match (line);
+                string speed  = "";
+                double number = 0.0;
+
+                if (match.Success) {
+                    number = double.Parse (match.Groups [1].Value);
+
+                    // The fetching progress consists of two stages: the "Compressing
+                    // objects" stage which we count as 20% of the total progress, and
+                    // the "Receiving objects" stage which we count as the last 80%
+                    if (line.StartsWith ("Compressing")) {
+                        // "Compressing objects" stage
+                        number = (number / 100 * 20);
+
+                    } else {
+                        // "Writing objects" stage
+                        number = (number / 100 * 80 + 20);
+
+                        if (line.Contains ("|")) {
+                            speed = line.Substring (line.IndexOf ("|") + 1).Trim ();
+                            speed = speed.Replace (", done.", "").Trim ();
+                            speed = speed.Replace ("i", "");
+                            speed = speed.Replace ("KB/s", "ᴋʙ/s");
+                            speed = speed.Replace ("MB/s", "ᴍʙ/s");
+                        }
+                    }
+                }
+
+                if (number >= percentage) {
+                    percentage = number;
+                    base.OnSyncProgressChanged (percentage, speed);
+                }
+            }
+
             git.WaitForExit ();
+
+            CalculateSizes ();
 
             if (git.ExitCode == 0) {
                 Rebase ();
@@ -179,7 +318,7 @@ namespace SparkleLib {
 
         public override bool AnyDifferences {
             get {
-                FillEmptyDirectories (LocalPath);
+                PrepareDirectories (LocalPath);
 
                 SparkleGit git = new SparkleGit (LocalPath, "status --porcelain");
                 git.Start ();
@@ -216,6 +355,7 @@ namespace SparkleLib {
                 if (value) {
                     if (!File.Exists (unsynced_file_path))
                         File.Create (unsynced_file_path).Close ();
+
                 } else {
                     File.Delete (unsynced_file_path);
                 }
@@ -233,177 +373,16 @@ namespace SparkleLib {
             SparkleHelpers.DebugInfo ("Git", "[" + Name + "] Changes staged");
         }
 
-        // Add a new file to be ignored
-        public override bool AddExclusionRule (FileSystemEventArgs args) {
-
-            string RelativePath = SparkleHelpers.DiffPaths(args.FullPath, LocalPath);
-            
-            List<String> exclusions;
-            try {
-                exclusions = ReadExclusionRules();
-            }
-            catch {
-                return false;
-            }
-            
-            // Look for the local exclusions section
-            bool added = false;
-            for(int i = 0; i < exclusions.Count; i++) {
-            	string entry = exclusions[i];
-            	if(entry.Equals(ExclusionBlock)) {
-                    // add a new exclusion rule containing a file path
-                    exclusions.Insert(i + 1, RelativePath);
-                    added = true;
-                    break;
-            	}
-            }
-            
-            /*
-             * For compability to existing repos:
-             * Add a "#Temporary Exclusions"-Block to the
-             * ignore file in order to recognize this
-             * exclude rules later on
-             */
-            if(!added) {
-                exclusions.Add(ExclusionBlock);
-                exclusions.Add(RelativePath);
-            }
-            
-            // Write exceptions list back to file
-            return WriteExclusionRules(exclusions);
-        }
-		
-        // Check whether a specific rule exists in the exclusion file
-        public override bool ExclusionRuleExists(FileSystemEventArgs args) {
-            string RelativePath = SparkleHelpers.DiffPaths(args.FullPath, LocalPath);
-        
-            List<String> exclusions;
-            try {
-                // Read rules from temporary block only
-                exclusions = ReadExclusionRules(true);
-        
-                foreach(string entry in exclusions) {
-                    if(entry.Equals(RelativePath)) {
-                        return true;
-                    }
-                }
-            } catch {
-                SparkleHelpers.DebugInfo("Error", "Cannot determine whether an exclusion rule for " +
-                                         args.FullPath + " already exists or not.");
-                return false;
-            }
-        
-            return false;
-        }
-        
-        // Remove file from exclusion list when they are readable again
-        public override bool RemoveExclusionRule(FileSystemEventArgs args) {
-            string RelativePath = SparkleHelpers.DiffPaths(args.FullPath, LocalPath);
-        
-            List<String> exclusions;
-            try {
-                exclusions = ReadExclusionRules();
-        
-                /*
-                 * Removing a rule should only apply to rules in the "Temporary Exclusion"-block.
-                 * Therefore we first read until reaching the block and then remove the rule.
-                 *
-                 * We cannot use ReadExclusionRules(true) here since we write all lines back
-                 * to the file. This would result in a crippled exclusion file.
-                 */
-                bool BlockReached = false;
-                foreach(string entry in exclusions) {
-                    if(entry.Equals(ExclusionBlock)) {
-                        BlockReached = true;
-                    }
-        
-                    // Remove this rule
-                    if(BlockReached && entry.Equals(RelativePath)) {
-                        exclusions.Remove(entry);
-                        break;
-                    }
-                }
-        
-                return WriteExclusionRules(exclusions);
-            } catch {
-                SparkleHelpers.DebugInfo("Error", "Unable to remove exclusion rule for entry " + RelativePath);
-                return false;
-            }
-        }
-
-        // Reads the exclusion rules file into a string list
-        private List<String> ReadExclusionRules() {
-        
-            List<String> exclusions = new List<String>();
-            TextReader reader = new StreamReader (exlude_rules_file_path);;
-        
-            try {
-                while(reader.Peek() > -1) {
-                    exclusions.Add(reader.ReadLine().TrimEnd());
-                }
-            }
-            catch (IOException e) {
-                SparkleHelpers.DebugInfo("Error", "Reading from exclusion file failed: " + e.Message);
-                return new List<String>();
-            }
-            finally {
-                if(reader != null) {
-                    reader.Close();
-                }
-            }
-        
-            return exclusions;
-        }
-
-        // Reads rules only from temporary exclusion block
-        private List<String> ReadExclusionRules(bool TempOnly) {
-            if(TempOnly) {
-                bool ForceRead = false;
-                List<String> exclusions = new List<String>();
-                foreach(string entry in ReadExclusionRules()) {
-                    if(ForceRead || entry.Equals(ExclusionBlock)) {
-                        exclusions.Add(entry);
-                        ForceRead = true;
-                    }
-                }
-        
-                return exclusions;
-            }
-        
-            return ReadExclusionRules();
-        }
-
-        // Writes the exclusion rules file with a given string list
-        private bool WriteExclusionRules(List<String> lines) {
-        
-            TextWriter writer = new StreamWriter (exlude_rules_file_path);
-        
-            try {
-                foreach(string line in lines) {
-                    writer.WriteLine(line.TrimEnd());
-                }
-            } catch(IOException e) {
-                SparkleHelpers.DebugInfo("Error", "Writing into exclusion file failed: " + e.Message);
-                return false;
-            }
-            finally {
-                if(writer != null) {
-                    writer.Close();
-                }
-            }
-        
-            return true;
-        }
 
         // Removes unneeded objects
-        private void CollectGarbage ()
+/*        private void CollectGarbage ()
         {
             SparkleGit git = new SparkleGit (LocalPath, "gc");
             git.Start ();
             git.WaitForExit ();
 
             SparkleHelpers.DebugInfo ("Git", "[" + Name + "] Garbage collected.");
-        }
+        } */
 
 
         // Commits the made changes
@@ -470,6 +449,7 @@ namespace SparkleLib {
             // DU    unmerged, deleted by us   -> Use theirs
             // AA    unmerged, both added      -> Use theirs, save ours as a timestamped copy
             // UU    unmerged, both modified   -> Use theirs, save ours as a timestamped copy
+            // ??    unmerged, new files       -> Stage the new files
             //
             // Note that a rebase merge works by replaying each commit from the working branch on
             // top of the upstream branch. Because of this, when a merge conflict happens the
@@ -485,11 +465,6 @@ namespace SparkleLib {
             // WaitForExit, or it will hang forever on output > 4096 bytes
             string output = git_status.StandardOutput.ReadToEnd ().TrimEnd ();
             git_status.WaitForExit ();
-
-            if (String.IsNullOrEmpty (output)) {
-                // no conflict any more.
-                return;
-            }
 
             string [] lines = output.Split ("\n".ToCharArray ());
 
@@ -559,6 +534,16 @@ namespace SparkleLib {
                     git_rebase_skip.Start ();
                     git_rebase_skip.WaitForExit ();
                 }
+
+                // New local files
+                if (line.StartsWith ("??")) {
+
+                    Add ();
+
+                    SparkleGit git_rebase_continue = new SparkleGit (LocalPath, "rebase --continue");
+                    git_rebase_continue.Start ();
+                    git_rebase_continue.WaitForExit ();
+                }
             }
         }
 
@@ -571,13 +556,10 @@ namespace SparkleLib {
 
             List <SparkleChangeSet> change_sets = new List <SparkleChangeSet> ();
 
-            SparkleGit git_log = new SparkleGit (LocalPath, "log -" + count + " --raw -M --date=iso");
-			if ((SparkleBackend.Platform == PlatformID.Unix ||
-				 SparkleBackend.Platform == PlatformID.MacOSX)) {
-				// this causes an IOException on windows
-				Console.OutputEncoding = System.Text.Encoding.Unicode;
-			}
+            // Console.InputEncoding  = System.Text.Encoding.Unicode;
+            // Console.OutputEncoding = System.Text.Encoding.Unicode;
 
+            SparkleGit git_log = new SparkleGit (LocalPath, "log -" + count + " --raw -M --date=iso");
             git_log.Start ();
 
             // Reading the standard output HAS to go before
@@ -588,16 +570,24 @@ namespace SparkleLib {
             string [] lines       = output.Split ("\n".ToCharArray ());
             List <string> entries = new List <string> ();
 
-            int j = 0;
+            int line_number = 0;
+            bool first_pass = true;
             string entry = "", last_entry = "";
             foreach (string line in lines) {
-                if (line.StartsWith ("commit") && j > 0) {
+                if (line.StartsWith ("commit") && !first_pass) {
                     entries.Add (entry);
                     entry = "";
+                    line_number = 0;
+
+                } else {
+                    first_pass = false;
                 }
 
-                entry += line + "\n";
-                j++;
+                // Only parse 250 files to prevent memory issues
+                if (line_number < 254) {
+                    entry += line + "\n";
+                    line_number++;
+                }
 
                 last_entry = entry;
             }
@@ -683,6 +673,7 @@ namespace SparkleLib {
                         }
                     }
 
+
                     if ((change_set.Added.Count +
                          change_set.Edited.Count +
                          change_set.Deleted.Count +
@@ -699,18 +690,38 @@ namespace SparkleLib {
 
 
         // Git doesn't track empty directories, so this method
-        // fills them all with a hidden empty file
-        private void FillEmptyDirectories (string path)
+        // fills them all with a hidden empty file.
+        //
+        // It also prevents git repositories from becoming
+        // git submodules by renaming the .git/HEAD file
+        private void PrepareDirectories (string path)
         {
             foreach (string child_path in Directory.GetDirectories (path)) {
-                if (child_path.EndsWith (".git") || child_path.EndsWith (".notes"))
+                if (child_path.EndsWith (".git") &&
+                    !child_path.Equals (Path.Combine (LocalPath, ".git"))) {
+
+                    string HEAD_file_path = Path.Combine (child_path, "HEAD");
+
+                    if (File.Exists (HEAD_file_path)) {
+                        File.Move (HEAD_file_path, HEAD_file_path + ".backup");
+                        SparkleHelpers.DebugInfo ("Git", "[" + Name + "] Renamed " + HEAD_file_path);
+                    }
+
                     continue;
 
-                FillEmptyDirectories (child_path);
+                } else if (child_path.EndsWith (".notes")) {
+                    continue;
+                }
+
+                PrepareDirectories (child_path);
             }
 
-            if (Directory.GetFiles (path).Length == 0 && !path.Equals (LocalPath))
+            if (Directory.GetFiles (path).Length == 0 &&
+                Directory.GetDirectories (path).Length == 0 &&
+                !path.Equals (LocalPath)) {
+
                 File.Create (Path.Combine (path, ".empty")).Close ();
+            }
         }
 
 
@@ -752,6 +763,10 @@ namespace SparkleLib {
 
             foreach (string added in Added) {
                 file_name = added.Trim ("\"".ToCharArray ());
+
+                if (file_name.EndsWith (".empty"))
+                    file_name = file_name.Substring (0, file_name.Length - 6);
+
                 message += "+ ‘" + file_name + "’" + n;
 
                 count++;
@@ -761,6 +776,10 @@ namespace SparkleLib {
 
             foreach (string modified in Modified) {
                 file_name = modified.Trim ("\"".ToCharArray ());
+
+                if (file_name.EndsWith (".empty"))
+                    file_name = file_name.Substring (0, file_name.Length - 6);
+
                 message += "/ ‘" + file_name + "’" + n;
 
                 count++;
@@ -770,6 +789,10 @@ namespace SparkleLib {
 
             foreach (string removed in Removed) {
                 file_name = removed.Trim ("\"".ToCharArray ());
+
+                if (file_name.EndsWith (".empty"))
+                    file_name = file_name.Substring (0, file_name.Length - 6);
+
                 message += "- ‘" + file_name + "’" + n;
 
                 count++;
@@ -795,6 +818,39 @@ namespace SparkleLib {
         {
             base.CreateInitialChangeSet ();
             SyncUp ();
+        }
+
+
+        // Recursively gets a folder's size in bytes
+        public override double CalculateSize (DirectoryInfo parent)
+        {
+            if (!Directory.Exists (parent.ToString ()))
+                return 0;
+
+            double size = 0;
+
+            // Ignore the temporary 'rebase-apply' and '.tmp' directories. This prevents potential
+            // crashes when files are being queried whilst the files have already been deleted.
+            if (parent.Name.Equals ("rebase-apply") ||
+                parent.Name.Equals (".tmp"))
+                return 0;
+
+            try {
+                foreach (FileInfo file in parent.GetFiles()) {
+                    if (!file.Exists)
+                        return 0;
+
+                    size += file.Length;
+                }
+
+                foreach (DirectoryInfo directory in parent.GetDirectories ())
+                    size += CalculateSize (directory);
+
+            } catch (Exception) {
+                return 0;
+            }
+
+            return size;
         }
     }
 }

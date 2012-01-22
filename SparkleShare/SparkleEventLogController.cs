@@ -18,6 +18,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 using SparkleLib;
@@ -32,8 +34,13 @@ namespace SparkleShare {
         public event UpdateChooserEventHandler UpdateChooserEvent;
         public delegate void UpdateChooserEventHandler (string [] folders);
 
+        public event UpdateSizeInfoEventHandler UpdateSizeInfoEvent;
+        public delegate void UpdateSizeInfoEventHandler (string size, string history_size);
+
         public event ContentLoadingEventHandler ContentLoadingEvent;
         public delegate void ContentLoadingEventHandler ();
+
+        private string selected_folder;
 
 
         public string SelectedFolder {
@@ -46,6 +53,9 @@ namespace SparkleShare {
 
                 if (ContentLoadingEvent != null)
                     ContentLoadingEvent ();
+
+                if (UpdateSizeInfoEvent != null)
+                    UpdateSizeInfoEvent ("…", "…");
 
                 Stopwatch watch = new Stopwatch ();
                 watch.Start ();
@@ -61,6 +71,9 @@ namespace SparkleShare {
 
                     if (UpdateContentEvent != null)
                         UpdateContentEvent (html);
+    
+                    if (UpdateSizeInfoEvent != null)
+                        UpdateSizeInfoEvent (Size, HistorySize);
                 }));
 
                 thread.Start ();
@@ -70,7 +83,13 @@ namespace SparkleShare {
         public string HTML {
             get {
                 List<SparkleChangeSet> change_sets = Program.Controller.GetLog (this.selected_folder);
-                return Program.Controller.GetHTMLLog (change_sets);
+
+                string html = Program.Controller.GetHTMLLog (change_sets);
+
+                if (UpdateSizeInfoEvent != null)
+                    UpdateSizeInfoEvent (Size, HistorySize);
+
+                return html;
             }
         }
 
@@ -80,8 +99,49 @@ namespace SparkleShare {
             }
         }
 
+        public string Size {
+            get {
+                double size = 0;
 
-        private string selected_folder;
+                foreach (SparkleRepoBase repo in Program.Controller.Repositories) {
+                    if (this.selected_folder == null)
+                        size += repo.Size;
+                    else if (this.selected_folder.Equals (repo.Name)) {
+                        if (repo.Size == 0)
+                            return "???";
+                        else
+                            return Program.Controller.FormatSize (repo.Size);
+                    }
+                }
+
+                if (size == 0)
+                    return "???";
+                else
+                    return Program.Controller.FormatSize (size);
+            }
+        }
+
+        public string HistorySize {
+            get {
+                double size = 0;
+
+                foreach (SparkleRepoBase repo in Program.Controller.Repositories) {
+                    if (this.selected_folder == null)
+                        size += repo.HistorySize;
+                    else if (this.selected_folder.Equals (repo.Name)) {
+                        if (repo.HistorySize == 0)
+                            return "???";
+                        else
+                            return Program.Controller.FormatSize (repo.HistorySize);
+                    }
+                }
+
+                if (size == 0)
+                    return "???";
+                else
+                    return Program.Controller.FormatSize (size);
+            }
+        }
 
 
         public SparkleEventLogController ()
@@ -94,6 +154,9 @@ namespace SparkleShare {
             Program.Controller.OnIdle += delegate {
                 if (UpdateContentEvent != null)
                     UpdateContentEvent (HTML);
+
+                if (UpdateSizeInfoEvent != null)
+                    UpdateSizeInfoEvent (Size, HistorySize);
             };
 
             Program.Controller.FolderListChanged += delegate {
@@ -108,12 +171,34 @@ namespace SparkleShare {
 
                 if (UpdateContentEvent != null)
                     UpdateContentEvent (HTML);
-            };
 
-            Program.Controller.NotificationRaised += delegate {
-                if (UpdateContentEvent != null)
-                    UpdateContentEvent (HTML);
+                if (UpdateSizeInfoEvent != null)
+                    UpdateSizeInfoEvent (Size, HistorySize);
             };
+        }
+
+
+        public static void LinkClicked (string url)
+        {
+            if (url.StartsWith (Path.VolumeSeparatorChar.ToString ())) {
+                Program.Controller.OpenFile (url);
+
+            } else {
+                Regex regex = new Regex (@"(.+)~(.+)~(.+)");
+                Match match = regex.Match (url);
+
+                if (match.Success) {
+                    string folder_name = match.Groups [1].Value;
+                    string revision    = match.Groups [2].Value;
+                    string note        = match.Groups [3].Value;
+
+                    Thread thread = new Thread (new ThreadStart (delegate {
+                        Program.Controller.AddNoteToFolder (folder_name, revision, note);
+                    }));
+
+                    thread.Start ();
+                }
+            }
         }
     }
 }
