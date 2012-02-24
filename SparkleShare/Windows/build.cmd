@@ -23,3 +23,30 @@ if "%1"=="installer" (
 	)
 	
 ) else echo Not building installer, as it was not requested. ^(Issue "build.cmd installer" to build installer ^)
+
+if "%1"=="portable" (
+	echo Building PortableApp Application Installer...
+	echo Copying latest release...
+	
+	set portableAppTemplateDir=%~dp0\..\..\SparkleSharePortable
+	set iconsDir=%~dp0\..\..\data\icons
+	set portableAppInfoDir=%portableAppTemplateDir%\App\AppInfo
+	set binDir=%~dp0\..\..\bin
+	rem replace the following variable with the path to your portable apps installer folder
+	rem	ie f:\portableapps\portableappsPortableApps.comInstaller
+	rem go to http://portableapps.com/apps/development/portableapps.com_installer
+	rem and http://portableapps.com
+	rem for more details on the platform and the installer.
+	set portableAppInstallerDir=F:\PortableApps\PortableApps.comInstaller
+	
+	copy "%iconsDir%\folder-sparkleshare-16.png" "%portableAppInfoDir%\appicon_16.png"
+	copy "%iconsDir%\folder-sparkleshare-32.png" "%portableAppInfoDir%\appicon_32.png"
+	copy "%iconsDir%\sparkleshare.ico" "%portableAppInfoDir%\appicon.ico"
+	xcopy "%binDir%" "%portableAppTemplateDir%\App\SparkleShare" /E /I /Y /Q
+	
+	echo Invoking installer...
+	echo Preparing installer...
+	echo "%portableAppInstallerDir%\PortableApps.comInstaller.exe"
+	"%portableAppInstallerDir%\PortableApps.comInstaller.exe" %portableAppTemplateDir%
+	echo PAF installer created.
+) else echo Not building portableapps installer, as it was not requested. ^(Issue "build.cmd portable" to build portableapps installer ^)
